@@ -560,7 +560,7 @@ body.page-rajout-active #rajoutHeroZone {
 	margin-bottom: 6px;
 	font-size: 0.78rem;
 	font-weight: 700;
-	color: var(--text);
+	color: rgb(7, 125, 204);
 }
 
 .field input,
@@ -570,7 +570,7 @@ body.page-rajout-active #rajoutHeroZone {
 	padding: 0 12px;
 	border-radius: 12px;
 	border: 1px solid var(--border);
-	background: #fff;
+	background: #e6dfdf;
 	color: var(--text);
 	font: inherit;
 	outline: none;
@@ -1548,11 +1548,12 @@ tbody tr:nth-child(even) td {
 							</div>
 							<div class="actions">
 								<button type="submit" class="primary-button">Rechercher</button>
-								<button id="resetButton" type="button" class="secondary-button">Reset</button>
+								<button id="resetButton" type="button" class="secondary-button">Réinitialiser</button>
 							</div>
 						</form>
-						<div id="resultsHint" style="margin-top:8px;color:var(--muted)">Prêt.</div>
+						<div id="resultsHint" style="margin-top:4px;color:var(--muted)"></div>
 						<div id="searchResults" class="results-list empty-state" style="margin-top:12px">Lancez une recherche pour afficher le planning et le choix de toute la semaine.</div>
+						<br/>
 						<div id="searchRajoutZone" class="search-rajout-zone">
 							<form id="rajoutForm" class="compact-rajout rajout-form-layout">
 								<div class="field rajout-matricule-block">
@@ -1565,6 +1566,7 @@ tbody tr:nth-child(even) td {
 										<span>Date</span>
 										<input id="rajoutDate" type="date" />
 									</div>
+                                    </br>
 									<div class="actions rajout-action-block">
 										<button type="submit" class="primary-button">Rajout</button>
 									</div>
