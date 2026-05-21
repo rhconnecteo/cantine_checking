@@ -375,37 +375,61 @@ function setRajoutMatricule(matricule) {
 }
 
 async function loadData() {
-	setStatus('Chargement des donnees...');
-
-	try {
-		const payload = await loadJsonp(`${WEB_APP_URL}?format=json`, 15000);
-
-		const normalized = normalizePayload(payload);
-		state.rows = normalized.rows;
-		state.days = normalized.days;
-		if (elements.totalRows) elements.totalRows.textContent = String(normalized.totalRows);
-		if (elements.noPlanningCount) elements.noPlanningCount.textContent = String(normalized.noPlanningCount);
-		if (elements.noChoiceCount) elements.noChoiceCount.textContent = String(normalized.noChoiceCount);
-		if (elements.rajoutCount) elements.rajoutCount.textContent = String(normalized.rajoutCount);
-
-		showIdleState();
-		if (document.body.classList.contains('page-rajout-active')) {
-			renderRajoutList();
-		}
-		setStatus('Pret');
-	} catch (error) {
-		if (elements.searchResults) {
-			elements.searchResults.classList.add('empty-state');
-			elements.searchResults.textContent =
-				error && error.message
-					? `${error.message} Verifiez le deploiement Apps Script et l'acces public de l'URL.`
-					: 'Impossible de charger les donnees.';
-		} else {
-			console.warn('loadData: searchResults element not found;', error);
-		}
-		if (elements.resultsHint) elements.resultsHint.textContent = 'Erreur de chargement.';
-		setStatus('Erreur');
-	}
+    setStatus('Chargement des donnees...');
+    
+    try {
+        // Utiliser fetch au lieu de JSONP
+        const response = await fetch(`${WEB_APP_URL}?format=json`, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const payload = await response.json();
+        
+        const normalized = normalizePayload(payload);
+        state.rows = normalized.rows;
+        state.days = normalized.days;
+        if (elements.totalRows) elements.totalRows.textContent = String(normalized.totalRows);
+        if (elements.noPlanningCount) elements.noPlanningCount.textContent = String(normalized.noPlanningCount);
+        if (elements.noChoiceCount) elements.noChoiceCount.textContent = String(normalized.noChoiceCount);
+        if (elements.rajoutCount) elements.rajoutCount.textContent = String(normalized.rajoutCount);
+        
+        showIdleState();
+        if (document.body.classList.contains('page-rajout-active')) {
+            renderRajoutList();
+        }
+        setStatus('Pret');
+    } catch (error) {
+        console.error('loadData error:', error);
+        
+        if (elements.searchResults) {
+            elements.searchResults.classList.add('empty-state');
+            
+            // Message d'erreur plus précis
+            let message = '';
+            if (error.message.includes('Failed to fetch')) {
+                message = 'Erreur de connexion. Vérifiez :\n- Le déploiement Apps Script est en version "Tout le monde"\n- L\'URL est correcte\n- Pas de bloqueur CORS actif';
+            } else if (error.message.includes('CORS')) {
+                message = 'Erreur CORS. Dans Apps Script : Déployer > Nouveau déploiement > Accès : "Tout le monde"';
+            } else {
+                message = `${error.message} Verifiez le deploiement Apps Script et l'acces public de l'URL.`;
+            }
+            
+            elements.searchResults.textContent = message;
+        } else {
+            console.warn('loadData: searchResults element not found;', error);
+        }
+        if (elements.resultsHint) elements.resultsHint.textContent = 'Erreur de chargement.';
+        setStatus('Erreur');
+    }
 }
 
 function loadJsonp(baseUrl, timeoutMs) {
