@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw5A9aI2js1XkTLrpbJgGOMW4dIPYZlmZ_kYrnDgX1PKJXdRrvAXUQ5FScq8f9Mi-xe/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRImliUy2t1bG5K_YBkyJX2SMORqDfFMyZY_m4oDBat1sL92eubgLawVWbOfX5kB_X/exec';
 
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
