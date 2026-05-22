@@ -163,8 +163,9 @@ function getDashboardData() {
 				};
 				return accumulator;
 			}, {}),
-			source: row[30] || '',
-			isAddedCollaborator: normalizeKey_(row[30]) === 'ajout_form',
+			imageBase64: row[30] || '',
+			source: row[31] || '',
+			isAddedCollaborator: normalizeKey_(row[31]) === 'ajout_form',
 			rajouts: rajoutIndex[normalizeKey_(row[0])] || {},
 		}));
 
@@ -495,7 +496,7 @@ function addCollaboratorRow(params) {
 		const rowValues = Array(31).fill('');
 		rowValues[0] = matricule;
 		rowValues[1] = nomPrenom;
-		rowValues[30] = 'AJOUT_FORM';
+		rowValues[31] = 'AJOUT_FORM';
 		sheet.appendRow(rowValues);
 
 		return {

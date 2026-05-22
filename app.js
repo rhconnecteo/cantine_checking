@@ -48,7 +48,6 @@ const elements = {};
 
 document.addEventListener('DOMContentLoaded', () => {
 	elements.totalRows = document.getElementById('totalRows');
-	elements.matchedRows = document.getElementById('matchedRows');
 	elements.noPlanningCount = document.getElementById('noPlanningCount');
 	elements.noChoiceCount = document.getElementById('noChoiceCount');
 	elements.rajoutCount = document.getElementById('rajoutCount');
@@ -289,6 +288,13 @@ function isCollaboratorAdded(row) {
 	return Boolean(row?.isAddedCollaborator) || normalizeText(row?.source) === 'ajout_form';
 }
 
+function getCollaboratorImageSrc(row) {
+	const rawValue = String(row?.imageBase64 || '').trim();
+	if (!rawValue) return '';
+	if (rawValue.startsWith('data:')) return rawValue;
+	return `data:image/png;base64,${rawValue}`;
+}
+
 function getFormulaireDisplayState(row, dayData) {
 	const hasPlanning = Boolean(String(dayData?.planning || '').trim());
 	const hasChoice = Boolean(String(dayData?.choice || '').trim());
@@ -358,8 +364,6 @@ function runCurrentSearch() {
 	} else {
 		setRajoutDays([]);
 	}
-
-	elements.matchedRows.textContent = String(matches.length);
 
 	if (!matches.length) {
 		elements.resultsHint.textContent = 'Aucun matricule correspondant.';
@@ -1047,44 +1051,64 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 			const displayState = getFormulaireDisplayState(row, dayData);
 			const checked = isDayChecked(dayData);
 			const showAction = displayState.showAction;
+			const imageSrc = getCollaboratorImageSrc(row);
+			const imageStyle = imageSrc ? `style="background-image:url('${escapeHtml(imageSrc)}')"` : '';
 			return `
 				<div class="formulaire-result ${displayState.className} ${checked ? 'is-checked' : ''}">
-					<div class="formulaire-result-header">
-						<div class="formulaire-result-name-block">
-							<div class="formulaire-result-name">${escapeHtml(row.nomPrenom)}</div>
-							<div class="formulaire-result-matricule">${escapeHtml(row.matricule)}</div>
+					<div class="formulaire-result-glow"></div>
+					<div class="formulaire-result-layout">
+						<div class="formulaire-result-main">
+							<div class="formulaire-result-header">
+								<div class="formulaire-result-name-block">
+									<div class="formulaire-result-name">${escapeHtml(row.nomPrenom)}</div>
+									<div class="formulaire-result-matricule">${escapeHtml(row.matricule)}</div>
+								</div>
+								<div class="formulaire-result-day">${escapeHtml(dayLabel)}</div>
+							</div>
+
+							<div class="formulaire-result-summary-badges">
+								<span class="result-state-pill ${displayState.className}">${escapeHtml(displayState.label)}</span>
+								${checked ? '<span class="result-state-pill is-checked">Repas déjà pris</span>' : ''}
+							</div>
+
+							<div class="formulaire-result-grid">
+								<div class="formulaire-result-item">
+									<span>Matricule - Nom</span>
+									<strong>${escapeHtml(row.matricule)} - ${escapeHtml(row.nomPrenom)}</strong>
+								</div>
+								<div class="formulaire-result-item">
+									<span>Période</span>
+									<strong>${escapeHtml(dayData.period || 'Jour / Nuit')}</strong>
+								</div>
+								<div class="formulaire-result-item">
+									<span>Planning</span>
+									<strong>${escapeHtml(dayData.planning || 'Pas de planning')}</strong>
+								</div>
+								<div class="formulaire-result-item">
+									<span>Choix</span>
+									<strong>${escapeHtml(dayData.choice || 'Pas de choix')}</strong>
+								</div>
+								<div class="formulaire-result-item formulaire-result-item--check ${showAction ? '' : 'is-hidden'}">
+									<span>Checking</span>
+									${showAction ? `
+										<label class="formulaire-checkbox-wrap">
+											<input type="checkbox" class="formulaire-meal-checkbox" data-meal-action="take" data-meal-day="${escapeHtml(todayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}" ${checked ? 'checked' : ''} ${checked ? 'disabled' : ''} />
+											<strong>${checked ? 'Repas déjà pris' : 'Cocher si le repas est pris'}</strong>
+										</label>
+									` : '<strong>Aucune action disponible</strong>'}
+								</div>
+							</div>
+
+							<div class="formulaire-result-footnote ${displayState.className}">${checked ? 'Ce repas est deja pris.' : displayState.note}</div>
 						</div>
-						<div class="formulaire-result-day">${escapeHtml(dayLabel)}</div>
+
+						<div class="formulaire-result-rail">
+							<div class="formulaire-result-image-bar bar-one ${imageSrc ? 'has-image' : 'no-image'}" ${imageStyle}></div>
+							<div class="formulaire-result-image-bar bar-two ${imageSrc ? 'has-image' : 'no-image'}" ${imageStyle}></div>
+							<div class="formulaire-result-image-bar bar-three ${imageSrc ? 'has-image' : 'no-image'}" ${imageStyle}></div>
+						</div>
 					</div>
 
-					<div class="formulaire-result-grid">
-						<div class="formulaire-result-item">
-							<span>Matricule - Nom</span>
-							<strong>${escapeHtml(row.matricule)} - ${escapeHtml(row.nomPrenom)}</strong>
-						</div>
-						<div class="formulaire-result-item">
-							<span>Période</span>
-							<strong>${escapeHtml(dayData.period || 'Jour / Nuit')}</strong>
-						</div>
-						<div class="formulaire-result-item">
-							<span>Planning</span>
-							<strong>${escapeHtml(dayData.planning || 'Pas de planning')}</strong>
-						</div>
-						<div class="formulaire-result-item">
-							<span>Choix</span>
-							<strong>${escapeHtml(dayData.choice || 'Pas de choix')}</strong>
-						</div>
-						<div class="formulaire-result-item formulaire-result-item--check ${showAction ? '' : 'is-hidden'}">
-							<span>Checking</span>
-							${showAction ? `
-								<label class="formulaire-checkbox-wrap">
-									<input type="checkbox" class="formulaire-meal-checkbox" data-meal-action="take" data-meal-day="${escapeHtml(todayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}" ${checked ? 'checked' : ''} ${checked ? 'disabled' : ''} />
-									<strong>${checked ? 'Repas déjà pris' : 'Cocher si le repas est pris'}</strong>
-								</label>
-							` : '<strong>Aucune action disponible</strong>'}
-						</div>
-						<div class="formulaire-result-note ${displayState.className} ${checked ? 'is-ok' : ''}">${checked ? 'Ce repas est deja pris.' : displayState.note}</div>
-					</div>
 					<div class="formulaire-result-status ${displayState.className} ${checked ? 'is-checked' : ''}">${displayState.label}${checked ? ' · repas pris' : ''}</div>
 				</div>
 			`;
@@ -1207,7 +1231,6 @@ function setHeroSlideshowPlaying(shouldPlay) {
 
 function resetSearch() {
 	elements.matriculeInput.value = '';
-	elements.matchedRows.textContent = '0';
 	setRajoutMatricule('');
 	setRajoutDays([]);
 	showIdleState();
