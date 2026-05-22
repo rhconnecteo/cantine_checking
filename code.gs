@@ -57,6 +57,19 @@ function doGet(e) {
 		}
 	}
 
+	if (action === 'addCollaborator') {
+		try {
+			const payload = addCollaboratorRow(params);
+			return createResponse(payload, !!callback, callback);
+		} catch (error) {
+			return createResponse({
+				success: false,
+				error: error.toString(),
+				message: 'Erreur lors de l\'ajout du collaborateur',
+			}, !!callback, callback);
+		}
+	}
+
 	if (action === 'markMealTaken') {
 		try {
 			const payload = markMealTaken(params);
@@ -150,6 +163,8 @@ function getDashboardData() {
 				};
 				return accumulator;
 			}, {}),
+			source: row[30] || '',
+			isAddedCollaborator: normalizeKey_(row[30]) === 'ajout_form',
 			rajouts: rajoutIndex[normalizeKey_(row[0])] || {},
 		}));
 
@@ -448,4 +463,49 @@ function getSummaryCounts_(rows) {
 	});
 
 	return { noPlanningCount, noChoiceCount };
+}
+
+function addCollaboratorRow(params) {
+	const matricule = String(params.matricule || '').trim();
+	const nomPrenom = String(params.nomPrenom || params.nom || '').trim();
+
+	if (!matricule) {
+		throw new Error('Matricule obligatoire.');
+	}
+
+	if (!nomPrenom) {
+		throw new Error('Nom et prénom obligatoires.');
+	}
+
+	const lock = LockService.getScriptLock();
+	lock.waitLock(5000);
+	try {
+		const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+		if (!sheet) {
+			throw new Error('Feuille introuvable: ' + SHEET_NAME);
+		}
+
+		const values = sheet.getDataRange().getValues();
+		for (let i = 1; i < values.length; i += 1) {
+			if (normalizeKey_(values[i][0]) === normalizeKey_(matricule)) {
+				throw new Error('Ce matricule existe déjà.');
+			}
+		}
+
+		const rowValues = Array(31).fill('');
+		rowValues[0] = matricule;
+		rowValues[1] = nomPrenom;
+		rowValues[30] = 'AJOUT_FORM';
+		sheet.appendRow(rowValues);
+
+		return {
+			success: true,
+			message: 'Collaborateur ajouté.',
+			matricule,
+			nomPrenom,
+			isAddedCollaborator: true,
+		};
+	} finally {
+		lock.releaseLock();
+	}
 }

@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyLIEqYVdzxGIuFDHnW8lz-fdI_mza1GgN58U4bt5_rybo8zB4UF_bU5j2lNg3b-2jR/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyHNaApWpdRuPLcMYnx5-Nbug3PK9d4AEnjFHZf_VODAVsvTFtF1I-wS8FS-msJx2nY/exec';
 
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
@@ -56,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.matriculeInput = document.getElementById('matriculeInput');
 	elements.formulaireSearchForm = document.getElementById('formulaireSearchForm');
 	elements.formulaireMatriculeInput = document.getElementById('formulaireMatriculeInput');
+	elements.collaboratorForm = document.getElementById('collaboratorForm');
+	elements.collaboratorMatriculeInput = document.getElementById('collaboratorMatriculeInput');
+	elements.collaboratorNameInput = document.getElementById('collaboratorNameInput');
+	elements.collaboratorStatus = document.getElementById('collaboratorStatus');
 	elements.searchPeriodMode = document.getElementById('searchPeriodMode');
 	elements.resetButton = document.getElementById('resetButton');
 	elements.formulaireResetButton = document.getElementById('formulaireResetButton');
@@ -153,6 +157,10 @@ function bindEvents() {
 
 	if (elements.formulaireSearchForm) {
 		elements.formulaireSearchForm.addEventListener('submit', onFormulaireSearch);
+	}
+
+	if (elements.collaboratorForm) {
+		elements.collaboratorForm.addEventListener('submit', onCollaboratorSubmit);
 	}
 
 	if (elements.resetButton) {
@@ -277,6 +285,59 @@ function isDayChecked(dayData) {
 	return normalizeText(dayData?.checking) === 'x' || String(dayData?.isChecked || '').toLowerCase() === 'true';
 }
 
+function isCollaboratorAdded(row) {
+	return Boolean(row?.isAddedCollaborator) || normalizeText(row?.source) === 'ajout_form';
+}
+
+function getFormulaireDisplayState(row, dayData) {
+	const hasPlanning = Boolean(String(dayData?.planning || '').trim());
+	const hasChoice = Boolean(String(dayData?.choice || '').trim());
+	const isAdded = isCollaboratorAdded(row);
+
+	if (isAdded) {
+		return {
+			className: 'is-added',
+			label: 'Rajouté',
+			note: 'Collaborateur ajouté via le formulaire.',
+			showAction: true,
+		};
+	}
+
+	if (hasPlanning && hasChoice) {
+		return {
+			className: 'is-green',
+			label: 'Compatible',
+			note: 'Planning et choix présents.',
+			showAction: true,
+		};
+	}
+
+	if (!hasPlanning && hasChoice) {
+		return {
+			className: 'is-orange',
+			label: 'Planning manquant',
+			note: 'Planning absent.',
+			showAction: true,
+		};
+	}
+
+	if (hasPlanning && !hasChoice) {
+		return {
+			className: 'is-red',
+			label: 'Choix manquant',
+			note: 'Choix absent.',
+			showAction: true,
+		};
+	}
+
+	return {
+		className: 'is-empty',
+		label: 'Aucune donnée',
+		note: 'Pas de planning, pas de choix, pas de rajout.',
+		showAction: false,
+	};
+}
+
 function runCurrentSearch() {
 	const searchValue = String(elements.matriculeInput && elements.matriculeInput.value || '').trim();
 	const matricule = normalizeText(searchValue);
@@ -364,6 +425,60 @@ function onFormulaireMealToggle(event) {
 			input.disabled = false;
 			input.checked = false;
 			renderCurrentFormulaireSearch();
+		});
+}
+
+function onCollaboratorSubmit(event) {
+	event.preventDefault();
+
+	const matricule = String(elements.collaboratorMatriculeInput && elements.collaboratorMatriculeInput.value || '').trim();
+	const nomPrenom = String(elements.collaboratorNameInput && elements.collaboratorNameInput.value || '').trim();
+
+	if (!matricule || !nomPrenom) {
+		if (elements.collaboratorStatus) {
+			elements.collaboratorStatus.textContent = 'Le matricule et le nom sont obligatoires.';
+		}
+		return;
+	}
+
+	if (elements.collaboratorStatus) {
+		elements.collaboratorStatus.textContent = 'Enregistrement...';
+	}
+
+	const params = new URLSearchParams({
+		action: 'addCollaborator',
+		matricule,
+		nomPrenom,
+	});
+
+	loadJsonp(`${WEB_APP_URL}?${params.toString()}`, 15000)
+		.then((payload) => {
+			if (!payload || payload.success === false) {
+				throw new Error((payload && payload.message) || 'Erreur lors de l\'ajout du collaborateur.');
+			}
+
+			if (elements.collaboratorStatus) {
+				elements.collaboratorStatus.textContent = payload.message || 'Collaborateur ajouté.';
+			}
+
+			if (elements.collaboratorForm) {
+				elements.collaboratorForm.reset();
+			}
+
+			state.formulaireSearchMatricule = normalizeText(matricule);
+			if (elements.formulaireMatriculeInput) {
+				elements.formulaireMatriculeInput.value = matricule;
+			}
+
+			return loadData();
+		})
+		.then(() => {
+			renderCurrentFormulaireSearch();
+		})
+		.catch((error) => {
+			if (elements.collaboratorStatus) {
+				elements.collaboratorStatus.textContent = error && error.message ? error.message : 'Impossible d\'ajouter le collaborateur.';
+			}
 		});
 }
 
@@ -851,10 +966,11 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 			const abbrev = { lundi: 'Lun', mardi: 'Mar', mercredi: 'Mer', jeudi: 'Jeu', vendredi: 'Ven', samedi: 'Sam', dimanche: 'Dim' };
 			const rajoutDays = Object.keys(row.rajouts || {});
 			const dayItems = DAY_OPTIONS;
+			const rowIsRajout = isCollaboratorAdded(row);
 			const allVisibleReady = dayItems.length > 0 && dayItems.every((day) => isDayReady(row.days?.[day.key]));
 			const checkedCount = dayItems.filter((day) => isDayChecked(row.days?.[day.key])).length;
-			const stateClass = allVisibleReady ? 'is-ok' : 'is-alert';
-			const stateLabel = allVisibleReady ? 'Dossier pret' : 'Dossier incomplet';
+			const stateClass = rowIsRajout ? 'is-added' : (allVisibleReady ? 'is-ok' : 'is-alert');
+			const stateLabel = rowIsRajout ? 'Rajouté' : (allVisibleReady ? 'Dossier pret' : 'Dossier incomplet');
 			return `
 				<article class="result-card result-card--search ${stateClass}">
 					<div class="result-topline result-side">
@@ -874,15 +990,16 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 							const dayData = row.days?.[day.key] || {};
 							const ready = isDayReady(dayData);
 							const checked = isDayChecked(dayData);
+							const columnIsRajout = rowIsRajout || rajoutDays.includes(day.key);
 							return `
-								<div class="week-column ${ready ? 'is-ready' : 'is-missing'} ${rajoutDays.includes(day.key) ? 'is-rajout' : ''} ${checked ? 'is-checked' : ''}">
+								<div class="week-column ${columnIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing')} ${checked ? 'is-checked' : ''}">
 									<h4>${escapeHtml(isCompact ? (abbrev[day.key] || day.label) : day.label)}</h4>
 									${renderWeekdayCell('Planning', dayData.planning, 'Pas de planning')}
 									${renderWeekdayCell('Période', dayData.period, 'Jour / Nuit')}
 									${renderWeekdayCell('Choix', dayData.choice, 'Pas de choix')}
 									<div class="day-status ${ready ? 'is-ready' : 'is-missing'} ${checked ? 'is-checked' : ''}">${ready ? 'Compatible' : 'Incomplet'}${checked ? ' · repas pris' : ''}</div>
 									<div class="day-action-row">
-										${renderMealAction(row, day.key, ready, checked)}
+										${renderMealAction(row, day.key, dayData, checked)}
 									</div>
 								</div>
 							`;
@@ -927,10 +1044,11 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 	container.innerHTML = rows
 		.map((row) => {
 			const dayData = row.days?.[todayKey] || {};
-			const ready = isDayReady(dayData);
+			const displayState = getFormulaireDisplayState(row, dayData);
 			const checked = isDayChecked(dayData);
+			const showAction = displayState.showAction;
 			return `
-				<div class="formulaire-result ${ready ? 'is-ok' : 'is-alert'} ${checked ? 'is-checked' : ''}">
+				<div class="formulaire-result ${displayState.className} ${checked ? 'is-checked' : ''}">
 					<div class="formulaire-result-header">
 						<div class="formulaire-result-name-block">
 							<div class="formulaire-result-name">${escapeHtml(row.nomPrenom)}</div>
@@ -956,16 +1074,18 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 							<span>Choix</span>
 							<strong>${escapeHtml(dayData.choice || 'Pas de choix')}</strong>
 						</div>
-						<div class="formulaire-result-item formulaire-result-item--check">
+						<div class="formulaire-result-item formulaire-result-item--check ${showAction ? '' : 'is-hidden'}">
 							<span>Checking</span>
-							<label class="formulaire-checkbox-wrap">
-								<input type="checkbox" class="formulaire-meal-checkbox" data-meal-action="take" data-meal-day="${escapeHtml(todayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}" ${checked ? 'checked' : ''} ${checked ? 'disabled' : ''} />
-								<strong>${checked ? 'Repas déjà pris' : 'Cocher si le repas est pris'}</strong>
-							</label>
+							${showAction ? `
+								<label class="formulaire-checkbox-wrap">
+									<input type="checkbox" class="formulaire-meal-checkbox" data-meal-action="take" data-meal-day="${escapeHtml(todayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}" ${checked ? 'checked' : ''} ${checked ? 'disabled' : ''} />
+									<strong>${checked ? 'Repas déjà pris' : 'Cocher si le repas est pris'}</strong>
+								</label>
+							` : '<strong>Aucune action disponible</strong>'}
 						</div>
-						<div class="formulaire-result-note ${checked ? 'is-ok' : ''}">${checked ? 'Ce repas est deja pris.' : ''}</div>
+						<div class="formulaire-result-note ${displayState.className} ${checked ? 'is-ok' : ''}">${checked ? 'Ce repas est deja pris.' : displayState.note}</div>
 					</div>
-					<div class="formulaire-result-status ${ready ? 'is-ready' : 'is-missing'} ${checked ? 'is-checked' : ''}">${ready ? 'Compatible' : 'Incomplet'}${checked ? ' · repas pris' : ''}</div>
+					<div class="formulaire-result-status ${displayState.className} ${checked ? 'is-checked' : ''}">${displayState.label}${checked ? ' · repas pris' : ''}</div>
 				</div>
 			`;
 		})
@@ -996,8 +1116,11 @@ function resetFormulaireSearch() {
 	showFormulaireIdleState();
 }
 
-function renderMealAction(row, dayKey, isReady, isChecked) {
-	if (!isReady) {
+function renderMealAction(row, dayKey, dayData, isChecked) {
+	const addedCollaborator = isCollaboratorAdded(row);
+	const hasPlanning = Boolean(dayData && String(dayData.planning || '').trim());
+	const hasChoice = Boolean(dayData && String(dayData.choice || '').trim());
+	if (!hasPlanning && !hasChoice && !addedCollaborator) {
 		return '<div class="day-action day-action--blocked">Planning ou choix manquant</div>';
 	}
 
