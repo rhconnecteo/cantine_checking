@@ -339,6 +339,105 @@ button:hover {
 	text-align: center;
 }
 
+.formulaire-result {
+	display: grid;
+	gap: 14px;
+	padding: 16px 18px;
+	border-radius: 18px;
+	border: 1px solid rgba(23, 33, 43, 0.08);
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 246, 240, 0.96));
+}
+
+.formulaire-result.is-ok {
+	border-color: rgba(31, 122, 90, 0.2);
+}
+
+.formulaire-result.is-alert {
+	border-color: rgba(217, 119, 6, 0.18);
+}
+
+.formulaire-result.is-checked {
+	box-shadow: inset 0 0 0 1px rgba(31, 122, 90, 0.08);
+}
+
+.formulaire-result-header {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	align-items: start;
+}
+
+.formulaire-result-name {
+	font-size: 1.02rem;
+	font-weight: 800;
+}
+
+.formulaire-result-matricule,
+.formulaire-result-day,
+.formulaire-result-item span,
+.formulaire-result-status {
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: var(--muted);
+}
+
+.formulaire-result-day {
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--accent-strong);
+}
+
+.formulaire-result-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.formulaire-result-item {
+	display: grid;
+	gap: 4px;
+	padding: 10px 12px;
+	border-radius: 12px;
+	background: rgba(23, 33, 43, 0.03);
+}
+
+.formulaire-result-item strong {
+	font-size: 0.95rem;
+	line-height: 1.35;
+}
+
+.formulaire-result-item--check {
+	grid-column: 1 / -1;
+}
+
+.formulaire-checkbox-wrap {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	cursor: pointer;
+}
+
+.formulaire-meal-checkbox {
+	width: 18px;
+	height: 18px;
+	accent-color: var(--accent);
+}
+
+.formulaire-result-note {
+	min-height: 1.2em;
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: var(--muted);
+}
+
+.formulaire-result-note.is-ok {
+	color: var(--accent-strong);
+}
+
+.formulaire-result-note.is-alert {
+	color: #b45309;
+}
+
 .week-item {
  	background: rgba(245,245,245,0.8);
  	padding: 8px;
@@ -425,10 +524,6 @@ table {
 	background: #fff;
 }
 
-.hero-copy-shell{
-    max-width: 68ch;
-    background-color: red;
-}
 
 thead th {
 	position: sticky;
@@ -908,7 +1003,7 @@ body.page-rajout-active .rajout-panel {
 	background: transparent;
 }
 
-body.page-rajout-active #searchPanel {
+body.page-rajout-active #page-formulaire {
 	display: none !important;
 }
 

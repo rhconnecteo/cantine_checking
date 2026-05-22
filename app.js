@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzRImliUy2t1bG5K_YBkyJX2SMORqDfFMyZY_m4oDBat1sL92eubgLawVWbOfX5kB_X/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyLIEqYVdzxGIuFDHnW8lz-fdI_mza1GgN58U4bt5_rybo8zB4UF_bU5j2lNg3b-2jR/exec';
 
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
@@ -38,6 +38,9 @@ const state = {
 	lastResults: [],
 	selectedRajoutDays: [],
 	currentSearchMatricule: '',
+	formulaireSearchMatricule: '',
+	searchPeriodMode: 'all',
+	overviewHtml: '',
 	heroSlideshow: null,
 };
 
@@ -51,7 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.rajoutCount = document.getElementById('rajoutCount');
 	elements.searchForm = document.getElementById('searchForm');
 	elements.matriculeInput = document.getElementById('matriculeInput');
+	elements.formulaireSearchForm = document.getElementById('formulaireSearchForm');
+	elements.formulaireMatriculeInput = document.getElementById('formulaireMatriculeInput');
+	elements.searchPeriodMode = document.getElementById('searchPeriodMode');
 	elements.resetButton = document.getElementById('resetButton');
+	elements.formulaireResetButton = document.getElementById('formulaireResetButton');
 	elements.rajoutForm = document.getElementById('rajoutForm');
 	elements.rajoutMatriculeDisplay = document.getElementById('rajoutMatriculeDisplay');
 	elements.rajoutDate = document.getElementById('rajoutDate');
@@ -61,9 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.rajoutSubmitButton = elements.rajoutForm ? elements.rajoutForm.querySelector('button[type="submit"]') : null;
 	elements.resultsHint = document.getElementById('resultsHint');
 	elements.searchResults = document.getElementById('searchResults');
+	elements.formulaireResults = document.getElementById('formulaireResults');
 	elements.searchRajoutZone = document.getElementById('searchRajoutZone');
 	elements.rajoutHeroZone = document.getElementById('rajoutHeroZone');
-	elements.navSearchButton = document.getElementById('navSearchButton');
+	elements.navFormulaireButton = document.getElementById('navFormulaireButton');
+	elements.navRechercheButton = document.getElementById('navRechercheButton');
 	elements.navRajoutButton = document.getElementById('navRajoutButton');
 	elements.rajoutList = document.getElementById('rajoutList');
 
@@ -77,7 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		bindEvents();
 		adjustSidebarRajoutVisibility();
-		adjustRajoutSectionVisibility('page-recherche');
+		showSection('page-recherche');
+		setActiveNav(elements.navRechercheButton);
 		// ensure the rajout form is positioned into the search sidebar by default
 		positionRajoutForm('page-recherche');
 		initializeHeroSlideshow();
@@ -91,7 +101,7 @@ function adjustSidebarRajoutVisibility(pageId) {
 }
 
 function adjustRajoutSectionVisibility(pageId) {
-	const section = document.getElementById('rajoutSection');
+	const section = document.getElementById('page-rajout');
 	if (!section) return;
 	const isRajoutPage = pageId ? pageId === 'page-rajout' : document.body.classList.contains('page-rajout-active');
 	section.style.display = isRajoutPage ? '' : 'none';
@@ -104,10 +114,10 @@ function ensureSidebarRajoutContainer() {
 
 function positionRajoutForm(pageId) {
 	if (!elements.rajoutForm) return;
-	const isRajoutPage = pageId === 'page-rajout' || document.body.classList.contains('page-rajout-active');
+	const isRajoutPage = pageId === 'page-recherche';
 	const sidebarContainer = ensureSidebarRajoutContainer();
 	if (sidebarContainer) {
-		sidebarContainer.style.display = isRajoutPage ? 'none' : '';
+		sidebarContainer.style.display = isRajoutPage ? '' : 'none';
 	}
 }
 
@@ -141,15 +151,32 @@ function bindEvents() {
 		elements.searchForm.addEventListener('submit', onSearch);
 	}
 
+	if (elements.formulaireSearchForm) {
+		elements.formulaireSearchForm.addEventListener('submit', onFormulaireSearch);
+	}
+
 	if (elements.resetButton) {
 		elements.resetButton.addEventListener('click', resetSearch);
+	}
+
+	if (elements.formulaireResetButton) {
+		elements.formulaireResetButton.addEventListener('click', resetFormulaireSearch);
+	}
+
+	if (elements.searchResults) {
+		elements.searchResults.addEventListener('click', onSearchResultsClick);
+	}
+
+	if (elements.formulaireResults) {
+		elements.formulaireResults.addEventListener('change', onFormulaireMealToggle);
 	}
 
 	if (elements.rajoutForm) {
 		elements.rajoutForm.addEventListener('submit', onRajoutSubmit);
 	}
 
-	bindNavButton(elements.navSearchButton, 'page-recherche');
+	bindNavButton(elements.navFormulaireButton, 'page-formulaire');
+	bindNavButton(elements.navRechercheButton, 'page-recherche');
 	bindNavButton(elements.navRajoutButton, 'page-rajout');
 
 	if (elements.navRajoutButton) {
@@ -158,8 +185,6 @@ function bindEvents() {
 			showSection('page-rajout');
 			setActiveNav(elements.navRajoutButton);
 			renderRajoutList();
-			const searchPanel = document.getElementById('searchPanel');
-			if (searchPanel) searchPanel.style.display = 'none';
 		});
 	}
 
@@ -185,7 +210,7 @@ function bindNavButton(button, sectionId) {
 }
 
 function showSection(pageId) {
-	const pages = ['page-recherche', 'page-rajout'];
+	const pages = ['page-formulaire', 'page-recherche', 'page-rajout'];
 	pages.forEach((id) => {
 		const el = document.getElementById(id);
 		if (!el) return;
@@ -196,22 +221,29 @@ function showSection(pageId) {
 	// Add a body-level class to allow page-specific styling (hide stats on rajout page)
 	if (pageId === 'page-rajout') {
 		document.body.classList.add('page-rajout-active');
-		const searchPanel = document.getElementById('searchPanel');
-		if (searchPanel) searchPanel.style.display = 'none';
 		adjustRajoutSectionVisibility('page-rajout');
 		positionRajoutForm('page-rajout');
 		setHeroSlideshowPlaying(false);
 		renderRajoutList();
 		adjustSidebarRajoutVisibility('page-rajout');
-	} else {
+	} else if (pageId === 'page-recherche') {
 		document.body.classList.remove('page-rajout-active');
-		const searchPanel = document.getElementById('searchPanel');
-		if (searchPanel) searchPanel.style.display = '';
-		if (elements.rajoutHeroZone) elements.rajoutHeroZone.innerHTML = '';
 		adjustRajoutSectionVisibility('page-recherche');
 		positionRajoutForm('page-recherche');
 		adjustSidebarRajoutVisibility('page-recherche');
 		setHeroSlideshowPlaying(true);
+		if (state.currentSearchMatricule) {
+			runCurrentSearch();
+		} else {
+			showIdleState();
+		}
+	} else {
+		document.body.classList.remove('page-rajout-active');
+		adjustRajoutSectionVisibility('page-formulaire');
+		positionRajoutForm('page-formulaire');
+		adjustSidebarRajoutVisibility('page-formulaire');
+		setHeroSlideshowPlaying(true);
+		renderCurrentFormulaireSearch();
 	}
 
 	// scroll to top of main card
@@ -219,8 +251,173 @@ function showSection(pageId) {
 	if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function getTodayDayKey() {
+	const mapping = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+	return mapping[new Date().getDay()] || 'lundi';
+}
+
+function getDayLabel(dayKey) {
+	const day = DAY_OPTIONS.find((item) => item.key === dayKey);
+	return day ? day.label : dayKey;
+}
+
+function isDayVisibleForMode(dayPeriod, mode) {
+	const normalizedMode = normalizeText(mode);
+	if (normalizedMode === 'all' || !normalizedMode) {
+		return true;
+	}
+	return normalizeText(dayPeriod) === normalizedMode;
+}
+
+function isDayReady(dayData) {
+	return Boolean(String(dayData?.planning || '').trim()) && Boolean(String(dayData?.choice || '').trim());
+}
+
+function isDayChecked(dayData) {
+	return normalizeText(dayData?.checking) === 'x' || String(dayData?.isChecked || '').toLowerCase() === 'true';
+}
+
+function runCurrentSearch() {
+	const searchValue = String(elements.matriculeInput && elements.matriculeInput.value || '').trim();
+	const matricule = normalizeText(searchValue);
+	const todayKey = getTodayDayKey();
+
+	if (!matricule) {
+		showIdleState();
+		return;
+	}
+
+	const matches = state.rows.filter((row) => normalizeText(row.matricule) === matricule);
+	state.lastResults = matches;
+	setRajoutMatricule(matricule);
+
+	if (matches.length > 0) {
+		const existingRajoutDays = Object.keys(matches[0].rajouts || {});
+		setRajoutDays(existingRajoutDays);
+	} else {
+		setRajoutDays([]);
+	}
+
+	elements.matchedRows.textContent = String(matches.length);
+
+	if (!matches.length) {
+		elements.resultsHint.textContent = 'Aucun matricule correspondant.';
+		renderResults([], `Aucun resultat pour "${escapeHtml(searchValue)}".`, true, 'all', elements.searchResults);
+		return;
+	}
+
+	elements.resultsHint.textContent = `Recherche pour ${searchValue || matricule.toUpperCase()} - ${getDayLabel(todayKey)}.`;
+	renderResults(matches, '', false, 'all', elements.searchResults);
+	scrollToSection('topSection');
+}
+
+function onFormulaireSearch(event) {
+	event.preventDefault();
+	const searchValue = String(elements.formulaireMatriculeInput && elements.formulaireMatriculeInput.value || '').trim();
+	state.formulaireSearchMatricule = normalizeText(searchValue);
+	if (!state.formulaireSearchMatricule) {
+		showFormulaireIdleState();
+		return;
+	}
+	renderCurrentFormulaireSearch();
+	scrollToSection('topSection');
+}
+
+function onFormulaireMealToggle(event) {
+	const input = event.target && event.target.closest ? event.target.closest('input[data-meal-action="take"]') : null;
+	if (!input) return;
+
+	const matricule = String(input.getAttribute('data-meal-matricule') || '').trim();
+	const dayKey = String(input.getAttribute('data-meal-day') || '').trim();
+	if (!matricule || !dayKey) return;
+	if (!input.checked) return;
+
+	input.disabled = true;
+	const resultBlock = input.closest('.formulaire-result');
+	const note = resultBlock ? resultBlock.querySelector('.formulaire-result-note') : null;
+	if (note) note.textContent = 'Enregistrement...';
+
+	const params = new URLSearchParams({
+		action: 'markMealTaken',
+		matricule,
+		day: dayKey,
+	});
+
+	loadJsonp(`${WEB_APP_URL}?${params.toString()}`, 15000)
+		.then((payload) => {
+			if (!payload || payload.success === false) {
+				throw new Error((payload && payload.message) || 'Erreur lors de la prise du repas.');
+			}
+
+			if (note) {
+				note.textContent = payload.alreadyTaken ? 'Ce repas est deja pris.' : 'Repas marque comme pris.';
+			}
+			return loadData();
+		})
+		.then(() => {
+			renderCurrentFormulaireSearch();
+		})
+		.catch((error) => {
+			if (note) {
+				note.textContent = error && error.message ? error.message : 'Impossible de marquer le repas.';
+			}
+			input.disabled = false;
+			input.checked = false;
+			renderCurrentFormulaireSearch();
+		});
+}
+
+function onSearchResultsClick(event) {
+	const button = event.target && event.target.closest ? event.target.closest('button[data-meal-action="take"]') : null;
+	if (!button) return;
+
+	const container = event.currentTarget;
+
+	const matricule = String(button.getAttribute('data-meal-matricule') || '').trim();
+	const dayKey = String(button.getAttribute('data-meal-day') || '').trim();
+	if (!matricule || !dayKey) return;
+
+	button.disabled = true;
+	button.textContent = 'Traitement...';
+
+	const params = new URLSearchParams({
+		action: 'markMealTaken',
+		matricule,
+		day: dayKey,
+	});
+
+	loadJsonp(`${WEB_APP_URL}?${params.toString()}`, 15000)
+		.then((payload) => {
+			if (!payload || payload.success === false) {
+				throw new Error((payload && payload.message) || 'Erreur lors de la prise du repas.');
+			}
+
+			if (container === elements.searchResults && elements.resultsHint) {
+				elements.resultsHint.textContent = payload.alreadyTaken ? 'Ce repas est deja pris.' : 'Repas marque comme pris.';
+			}
+			return loadData();
+		})
+		.then(() => {
+			if (container === elements.formulaireResults) {
+				renderCurrentFormulaireSearch();
+			} else {
+				runCurrentSearch();
+			}
+		})
+		.catch((error) => {
+			if (container === elements.searchResults && elements.resultsHint) {
+				elements.resultsHint.textContent = error && error.message ? error.message : 'Impossible de marquer le repas.';
+			}
+			if (container === elements.formulaireResults) {
+				renderCurrentFormulaireSearch();
+			} else {
+				runCurrentSearch();
+			}
+		});
+}
+
 function setActiveNav(button) {
-	const buttons = [elements.navSearchButton, elements.navRajoutButton].filter(Boolean);
+	const buttons = [elements.navFormulaireButton, elements.navRechercheButton, elements.navRajoutButton].filter(Boolean);
 	buttons.forEach((b) => {
 		if (b === button) b.classList.add('is-active');
 		else b.classList.remove('is-active');
@@ -330,8 +527,8 @@ function openRajoutMainView() {
 
 function closeRajoutMainView() {
 	// restore search panel visibility and remove rajout class
-	const searchPanel = document.getElementById('searchPanel');
-	if (searchPanel) searchPanel.style.display = '';
+	const formulairePanel = document.getElementById('page-formulaire');
+	if (formulairePanel) formulairePanel.style.display = '';
 	document.body.classList.remove('page-rajout-active');
 	// restore idle state
 	showIdleState();
@@ -378,21 +575,7 @@ async function loadData() {
     setStatus('Chargement des donnees...');
     
     try {
-        // Utiliser fetch au lieu de JSONP
-        const response = await fetch(`${WEB_APP_URL}?format=json`, {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-cache',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const payload = await response.json();
+		const payload = await loadJsonp(`${WEB_APP_URL}?format=json`, 15000);
         
         const normalized = normalizePayload(payload);
         state.rows = normalized.rows;
@@ -403,8 +586,16 @@ async function loadData() {
         if (elements.rajoutCount) elements.rajoutCount.textContent = String(normalized.rajoutCount);
         
         showIdleState();
-        if (document.body.classList.contains('page-rajout-active')) {
+		if (document.body.classList.contains('page-rajout-active')) {
             renderRajoutList();
+		} else if (document.getElementById('page-recherche')?.classList.contains('active')) {
+			if (state.currentSearchMatricule) {
+				runCurrentSearch();
+			} else {
+				showIdleState();
+			}
+		} else if (document.getElementById('page-formulaire')?.classList.contains('active')) {
+			renderCurrentFormulaireSearch();
         }
         setStatus('Pret');
     } catch (error) {
@@ -412,18 +603,8 @@ async function loadData() {
         
         if (elements.searchResults) {
             elements.searchResults.classList.add('empty-state');
-            
-            // Message d'erreur plus précis
-            let message = '';
-            if (error.message.includes('Failed to fetch')) {
-                message = 'Erreur de connexion. Vérifiez :\n- Le déploiement Apps Script est en version "Tout le monde"\n- L\'URL est correcte\n- Pas de bloqueur CORS actif';
-            } else if (error.message.includes('CORS')) {
-                message = 'Erreur CORS. Dans Apps Script : Déployer > Nouveau déploiement > Accès : "Tout le monde"';
-            } else {
-                message = `${error.message} Verifiez le deploiement Apps Script et l'acces public de l'URL.`;
-            }
-            
-            elements.searchResults.textContent = message;
+
+			elements.searchResults.textContent = `${error.message || 'Erreur de chargement.'} Verifiez le deploiement Apps Script et l'acces public de l'URL.`;
         } else {
             console.warn('loadData: searchResults element not found;', error);
         }
@@ -515,13 +696,8 @@ function onRajoutSubmit(event) {
 					if (document.body.classList.contains('page-rajout-active')) {
 						renderRajoutList();
 					}
-					// Re-run current search to update displayed rajout badges
 					if (submittedMatricule) {
-						const matches = state.rows.filter((row) => normalizeText(row.matricule) === normalizeText(submittedMatricule));
-						state.lastResults = matches;
-						elements.matchedRows.textContent = String(matches.length);
-						renderResults(matches, '', matches.length === 0);
-						elements.resultsHint.textContent = `Recherche pour ${submittedMatricule}.`;
+						runCurrentSearch();
 					}
 					resetRajoutFormState();
 				})
@@ -619,13 +795,13 @@ function fromRawValues(values) {
 			matricule: row[0] || '',
 			nomPrenom: row[1] || '',
 			days: {
-				lundi: { planning: row[2] || '', choice: row[3] || '' },
-				mardi: { planning: row[4] || '', choice: row[5] || '' },
-				mercredi: { planning: row[6] || '', choice: row[7] || '' },
-				jeudi: { planning: row[8] || '', choice: row[9] || '' },
-				vendredi: { planning: row[10] || '', choice: row[11] || '' },
-				samedi: { planning: row[12] || '', choice: row[13] || '' },
-				dimanche: { planning: row[14] || '', choice: row[15] || '' },
+				lundi: { planning: row[2] || '', period: row[3] || '', choice: row[4] || '', checking: row[5] || '', isChecked: normalizeText(row[5]) === 'x' },
+				mardi: { planning: row[6] || '', period: row[7] || '', choice: row[8] || '', checking: row[9] || '', isChecked: normalizeText(row[9]) === 'x' },
+				mercredi: { planning: row[10] || '', period: row[11] || '', choice: row[12] || '', checking: row[13] || '', isChecked: normalizeText(row[13]) === 'x' },
+				jeudi: { planning: row[14] || '', period: row[15] || '', choice: row[16] || '', checking: row[17] || '', isChecked: normalizeText(row[17]) === 'x' },
+				vendredi: { planning: row[18] || '', period: row[19] || '', choice: row[20] || '', checking: row[21] || '', isChecked: normalizeText(row[21]) === 'x' },
+				samedi: { planning: row[22] || '', period: row[23] || '', choice: row[24] || '', checking: row[25] || '', isChecked: normalizeText(row[25]) === 'x' },
+				dimanche: { planning: row[26] || '', period: row[27] || '', choice: row[28] || '', checking: row[29] || '', isChecked: normalizeText(row[29]) === 'x' },
 			},
 		}));
 }
@@ -656,74 +832,61 @@ function renderDayOptions() {
 
 function onSearch(event) {
 	event.preventDefault();
-
-	const matricule = normalizeText(elements.matriculeInput.value);
-
-	if (!matricule) {
-		elements.matriculeInput.focus();
-		elements.resultsHint.textContent = 'Veuillez saisir un matricule.';
-		renderResults([], 'Saisissez un matricule pour lancer la recherche.', true);
-		elements.matchedRows.textContent = '0';
-		setRajoutMatricule('');
-		return;
-	}
-
-	const matches = state.rows.filter((row) => normalizeText(row.matricule) === matricule);
-
-	state.lastResults = matches;
-	setRajoutMatricule(matricule);
-
-	// If this matricule already has rajout entries, pre-select those days in the rajout form
-	if (matches.length > 0) {
-		const existingRajoutDays = Object.keys(matches[0].rajouts || {});
-		setRajoutDays(existingRajoutDays);
-	} else {
-		setRajoutDays([]);
-	}
-	elements.matchedRows.textContent = String(matches.length);
-
-	if (!matches.length) {
-		elements.resultsHint.textContent = 'Aucun matricule correspondant.';
-		renderResults([], `Aucun resultat pour "${matricule}".`, true);
-		return;
-	}
-
-	elements.resultsHint.textContent = `Recherche pour ${matricule}.`;
-	renderResults(matches, '', false);
-
-	// Ensure the results are visible without manual scrolling
-	scrollToSection('topSection');
+	runCurrentSearch();
 }
 
-function renderResults(rows, emptyMessage, isEmpty) {
+function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
+	const container = targetElement || elements.searchResults;
+	if (!container) return;
 	if (isEmpty) {
-		elements.searchResults.classList.add('empty-state');
-		elements.searchResults.innerHTML = emptyMessage;
+		container.classList.add('empty-state');
+		container.innerHTML = emptyMessage;
 		return;
 	}
 
-	elements.searchResults.classList.remove('empty-state');
-	elements.searchResults.innerHTML = rows
+	container.classList.remove('empty-state');
+	container.innerHTML = rows
 		.map((row) => {
 			const isCompact = window.innerWidth <= 420;
 			const abbrev = { lundi: 'Lun', mardi: 'Mar', mercredi: 'Mer', jeudi: 'Jeu', vendredi: 'Ven', samedi: 'Sam', dimanche: 'Dim' };
 			const rajoutDays = Object.keys(row.rajouts || {});
+			const dayItems = DAY_OPTIONS;
+			const allVisibleReady = dayItems.length > 0 && dayItems.every((day) => isDayReady(row.days?.[day.key]));
+			const checkedCount = dayItems.filter((day) => isDayChecked(row.days?.[day.key])).length;
+			const stateClass = allVisibleReady ? 'is-ok' : 'is-alert';
+			const stateLabel = allVisibleReady ? 'Dossier pret' : 'Dossier incomplet';
 			return `
-				<article class="result-card result-card--search">
-					<div class="result-side">
-						<p class="result-label">Semaine complète</p>
-						<h3>${escapeHtml(row.nomPrenom)}</h3>
-						<span class="result-badge">${escapeHtml(row.matricule)}</span>
+				<article class="result-card result-card--search ${stateClass}">
+					<div class="result-topline result-side">
+						<p class="result-label">Résultats matricule</p>
+						<div>
+							<h3>${escapeHtml(row.nomPrenom)}</h3>
+							<div class="result-meta-row">
+								<span class="result-badge">${escapeHtml(row.matricule)}</span>
+								<span class="result-state-pill ${stateClass}">${escapeHtml(stateLabel)}</span>
+								${checkedCount ? `<span class="result-state-pill is-checked">${checkedCount} repas cochés</span>` : ''}
+							</div>
+						</div>
 					</div>
 
 					<div class="week-grid">
-						${DAY_OPTIONS.map((day) => `
-							<div class="week-column ${rajoutDays.includes(day.key) ? 'is-rajout' : ''}">
-								<h4>${escapeHtml(isCompact ? (abbrev[day.key] || day.label) : day.label)}</h4>
-								${renderWeekdayCell('Planning', row.days?.[day.key]?.planning, 'Pas de planning')}
-								${renderWeekdayCell('Choix', row.days?.[day.key]?.choice, 'Pas de choix')}
-							</div>
-						`).join('')}
+						${dayItems.map((day) => {
+							const dayData = row.days?.[day.key] || {};
+							const ready = isDayReady(dayData);
+							const checked = isDayChecked(dayData);
+							return `
+								<div class="week-column ${ready ? 'is-ready' : 'is-missing'} ${rajoutDays.includes(day.key) ? 'is-rajout' : ''} ${checked ? 'is-checked' : ''}">
+									<h4>${escapeHtml(isCompact ? (abbrev[day.key] || day.label) : day.label)}</h4>
+									${renderWeekdayCell('Planning', dayData.planning, 'Pas de planning')}
+									${renderWeekdayCell('Période', dayData.period, 'Jour / Nuit')}
+									${renderWeekdayCell('Choix', dayData.choice, 'Pas de choix')}
+									<div class="day-status ${ready ? 'is-ready' : 'is-missing'} ${checked ? 'is-checked' : ''}">${ready ? 'Compatible' : 'Incomplet'}${checked ? ' · repas pris' : ''}</div>
+									<div class="day-action-row">
+										${renderMealAction(row, day.key, ready, checked)}
+									</div>
+								</div>
+							`;
+						}).join('')}
 					</div>
 
 					${rajoutDays.length ? `<div class="search-rajout-note">Rajout déjà noté : ${rajoutDays.map((dayKey) => escapeHtml(DAY_OPTIONS.find((day) => day.key === dayKey)?.label || dayKey)).join(', ')}</div>` : ''}
@@ -731,6 +894,118 @@ function renderResults(rows, emptyMessage, isEmpty) {
 			`;
 		})
 		.join('');
+}
+
+function renderOverview() {
+	if (!elements.overviewResults) return;
+	if (!Array.isArray(state.rows) || !state.rows.length) {
+		elements.overviewResults.classList.add('empty-state');
+		elements.overviewResults.textContent = 'Aucune donnée disponible.';
+		return;
+	}
+	if (state.overviewHtml) {
+		elements.overviewResults.classList.remove('empty-state');
+		elements.overviewResults.innerHTML = state.overviewHtml;
+		return;
+	}
+	elements.overviewResults.classList.remove('empty-state');
+	elements.overviewResults.innerHTML = buildOverviewHtml(state.rows);
+}
+
+function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
+	const container = elements.formulaireResults;
+	if (!container) return;
+	if (isEmpty) {
+		container.classList.add('empty-state');
+		container.innerHTML = emptyMessage;
+		return;
+	}
+
+	const todayKey = dayKey || getTodayDayKey();
+	const dayLabel = getDayLabel(todayKey);
+	container.classList.remove('empty-state');
+	container.innerHTML = rows
+		.map((row) => {
+			const dayData = row.days?.[todayKey] || {};
+			const ready = isDayReady(dayData);
+			const checked = isDayChecked(dayData);
+			return `
+				<div class="formulaire-result ${ready ? 'is-ok' : 'is-alert'} ${checked ? 'is-checked' : ''}">
+					<div class="formulaire-result-header">
+						<div class="formulaire-result-name-block">
+							<div class="formulaire-result-name">${escapeHtml(row.nomPrenom)}</div>
+							<div class="formulaire-result-matricule">${escapeHtml(row.matricule)}</div>
+						</div>
+						<div class="formulaire-result-day">${escapeHtml(dayLabel)}</div>
+					</div>
+
+					<div class="formulaire-result-grid">
+						<div class="formulaire-result-item">
+							<span>Matricule - Nom</span>
+							<strong>${escapeHtml(row.matricule)} - ${escapeHtml(row.nomPrenom)}</strong>
+						</div>
+						<div class="formulaire-result-item">
+							<span>Période</span>
+							<strong>${escapeHtml(dayData.period || 'Jour / Nuit')}</strong>
+						</div>
+						<div class="formulaire-result-item">
+							<span>Planning</span>
+							<strong>${escapeHtml(dayData.planning || 'Pas de planning')}</strong>
+						</div>
+						<div class="formulaire-result-item">
+							<span>Choix</span>
+							<strong>${escapeHtml(dayData.choice || 'Pas de choix')}</strong>
+						</div>
+						<div class="formulaire-result-item formulaire-result-item--check">
+							<span>Checking</span>
+							<label class="formulaire-checkbox-wrap">
+								<input type="checkbox" class="formulaire-meal-checkbox" data-meal-action="take" data-meal-day="${escapeHtml(todayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}" ${checked ? 'checked' : ''} ${checked ? 'disabled' : ''} />
+								<strong>${checked ? 'Repas déjà pris' : 'Cocher si le repas est pris'}</strong>
+							</label>
+						</div>
+						<div class="formulaire-result-note ${checked ? 'is-ok' : ''}">${checked ? 'Ce repas est deja pris.' : ''}</div>
+					</div>
+					<div class="formulaire-result-status ${ready ? 'is-ready' : 'is-missing'} ${checked ? 'is-checked' : ''}">${ready ? 'Compatible' : 'Incomplet'}${checked ? ' · repas pris' : ''}</div>
+				</div>
+			`;
+		})
+		.join('');
+}
+
+function renderCurrentFormulaireSearch() {
+	const matricule = String(state.formulaireSearchMatricule || '').trim();
+	if (!matricule) {
+		showFormulaireIdleState();
+		return;
+	}
+
+	const matches = state.rows.filter((row) => normalizeText(row.matricule) === normalizeText(matricule));
+	if (!matches.length) {
+		renderFormulaireResults([], `Aucun resultat pour "${escapeHtml(matricule)}".`, true, getTodayDayKey());
+		return;
+	}
+
+	renderFormulaireResults(matches, '', false, getTodayDayKey());
+}
+
+function resetFormulaireSearch() {
+	state.formulaireSearchMatricule = '';
+	if (elements.formulaireMatriculeInput) {
+		elements.formulaireMatriculeInput.value = '';
+	}
+	showFormulaireIdleState();
+}
+
+function renderMealAction(row, dayKey, isReady, isChecked) {
+	if (!isReady) {
+		return '<div class="day-action day-action--blocked">Planning ou choix manquant</div>';
+	}
+
+	if (isChecked) {
+		return '<div class="day-action day-action--taken">Repas deja pris</div>';
+	}
+
+	return `<button type="button" class="day-action-button" data-meal-action="take" data-meal-day="${escapeHtml(dayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}">Marquer repas pris</button>`;
 }
 
 function createSlideshow(containerId, slidesArray, intervalMs = 3600) {
@@ -814,12 +1089,23 @@ function resetSearch() {
 	setRajoutDays([]);
 	showIdleState();
 	elements.resultsHint.textContent = 'Aucun filtre applique.';
+	if (elements.searchResults) {
+		elements.searchResults.classList.add('empty-state');
+		elements.searchResults.textContent = 'Lancez une recherche pour afficher les résultats du matricule.';
+	}
+}
+
+function showFormulaireIdleState() {
+	if (elements.formulaireResults) {
+		elements.formulaireResults.classList.add('empty-state');
+		elements.formulaireResults.textContent = 'Lancez une recherche dans Formulaire pour voir le jour d’aujourd’hui du matricule recherché.';
+	}
 }
 
 function showIdleState() {
 	if (elements.searchResults) {
 		elements.searchResults.classList.add('empty-state');
-		elements.searchResults.textContent = 'Lancez une recherche pour afficher le planning et le choix de toute la semaine.';
+		elements.searchResults.textContent = 'Lancez une recherche pour afficher les résultats du matricule.';
 	} else {
 		console.warn('showIdleState: searchResults element not found');
 	}

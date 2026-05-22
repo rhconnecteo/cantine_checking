@@ -552,6 +552,24 @@ body.page-rajout-active #rajoutHeroZone {
 	align-items: end;
 }
 
+.sidebar-search {
+	display: grid;
+	gap: 10px;
+	margin-top: 12px;
+}
+
+.sidebar-search .search-grid {
+	grid-template-columns: 1fr;
+}
+
+.sidebar-search .actions {
+	flex-direction: column;
+}
+
+.sidebar-search .actions button {
+	width: 100%;
+}
+
 .search-grid-simple {
 	grid-template-columns: minmax(0, 1fr) auto;
 }
@@ -637,6 +655,58 @@ button:hover {
 	background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(251, 248, 241, 0.98));
 }
 
+.result-card--search.is-ok {
+	border-color: rgba(31, 122, 90, 0.26);
+	background: linear-gradient(180deg, rgba(247, 255, 250, 1), rgba(237, 249, 242, 0.98));
+}
+
+.result-card--search.is-alert {
+	border-color: rgba(217, 77, 77, 0.18);
+	background: linear-gradient(180deg, rgba(255, 248, 248, 1), rgba(255, 243, 243, 0.98));
+}
+
+.result-side {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 10px;
+}
+
+.result-meta-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.result-state-pill {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+	padding: 4px 8px;
+	border-radius: 999px;
+	background: rgba(23, 33, 43, 0.06);
+	color: var(--muted);
+	font-size: 0.68rem;
+	font-weight: 800;
+}
+
+.result-state-pill.is-ok {
+	background: rgba(31, 122, 90, 0.14);
+	color: var(--accent-strong);
+}
+
+.result-state-pill.is-alert {
+	background: rgba(217, 77, 77, 0.12);
+	color: #9d1c1c;
+}
+
+.result-state-pill.is-checked {
+	background: rgba(26, 88, 145, 0.12);
+	color: #1a5f8e;
+}
+
 .result-topline {
 	display: flex;
 	align-items: flex-start;
@@ -687,6 +757,20 @@ button:hover {
 	border: 1px solid rgba(217, 77, 77, 0.15);
 }
 
+.week-column.is-ready {
+	background: rgba(31, 122, 90, 0.12);
+	border-color: rgba(31, 122, 90, 0.18);
+}
+
+.week-column.is-missing {
+	background: rgba(217, 77, 77, 0.12);
+	border-color: rgba(217, 77, 77, 0.16);
+}
+
+.week-column.is-checked {
+	box-shadow: inset 0 0 0 1px rgba(31, 122, 90, 0.12);
+}
+
 .week-column.is-rajout {
 	background: rgba(31, 122, 90, 0.14);
 	border-color: rgba(31, 122, 90, 0.22);
@@ -721,6 +805,67 @@ button:hover {
 	font-size: 0.74rem;
 	font-weight: 700;
 	color: var(--text);
+}
+
+.day-status {
+	margin-top: 6px;
+	font-size: 0.65rem;
+	font-weight: 800;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.day-status.is-ready {
+	color: var(--accent-strong);
+}
+
+.day-status.is-missing {
+	color: #9d1c1c;
+}
+
+.day-status.is-checked {
+	color: #1a5f8e;
+}
+
+.day-action-row {
+	margin-top: 8px;
+}
+
+.day-action,
+.day-action-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 32px;
+	padding: 0 8px;
+	border-radius: 10px;
+	text-align: center;
+	font-size: 0.68rem;
+	font-weight: 800;
+}
+
+.day-action--blocked {
+	background: rgba(23, 33, 43, 0.05);
+	color: var(--muted);
+}
+
+.day-action--taken {
+	background: rgba(31, 122, 90, 0.14);
+	color: var(--accent-strong);
+}
+
+.day-action-button {
+	border: 0;
+	background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+	color: #fff;
+	cursor: pointer;
+}
+
+.day-action-button:disabled {
+	opacity: 0.72;
+	cursor: wait;
 }
 
 .week-rajout {
@@ -1480,7 +1625,8 @@ tbody tr:nth-child(even) td {
 				<div class="sidebar">
 					<div class="sidebar-title">Connecteo</div>
 					<div class="sidebar-nav">
-						<button id="navSearchButton" class="sidebar-button is-active">Recherche</button>
+						<button id="navFormulaireButton" class="sidebar-button">Formulaire</button>
+						<button id="navRechercheButton" class="sidebar-button is-active">Recherche</button>
 						<button id="navRajoutButton" class="sidebar-button">Rajouts</button>
 					</div>
 					<div class="sidebar-metric">
@@ -1539,9 +1685,14 @@ tbody tr:nth-child(even) td {
 							</div>
 						</div>
 					</section>
-                    
 
-					<section id="searchPanel" class="panel app-card">
+					<section id="page-recherche" class="panel app-card page-section">
+						<div class="panel-header">
+							<div>
+								<h2>Recherche générale</h2>
+								<p>Recherche par matricule, affichage des résultats, puis formulaire de rajout juste en dessous.</p>
+							</div>
+						</div>
 						<form id="searchForm" class="search-grid">
 							<div class="field">
 								<span>Matricule</span>
@@ -1553,8 +1704,7 @@ tbody tr:nth-child(even) td {
 							</div>
 						</form>
 						<div id="resultsHint" style="margin-top:4px;color:var(--muted)"></div>
-						<div id="searchResults" class="results-list empty-state" style="margin-top:12px">Lancez une recherche pour afficher le planning et le choix de toute la semaine.</div>
-						<br/>
+						<div id="searchResults" class="results-list empty-state" style="margin-top:12px">Lancez une recherche pour afficher les résultats du matricule.</div>
 						<div id="searchRajoutZone" class="search-rajout-zone">
 							<form id="rajoutForm" class="compact-rajout rajout-form-layout">
 								<div class="field rajout-matricule-block">
@@ -1567,7 +1717,7 @@ tbody tr:nth-child(even) td {
 										<span>Date</span>
 										<input id="rajoutDate" type="date" />
 									</div>
-                                    </br>
+									</br>
 									<div class="actions rajout-action-block">
 										<button type="submit" class="primary-button">Rajout</button>
 									</div>
@@ -1581,8 +1731,28 @@ tbody tr:nth-child(even) td {
 							</form>
 						</div>
 					</section>
+                    
+					<section id="page-formulaire" class="panel app-card page-section">
+						<div class="panel-header">
+							<div>
+								<h2>Formulaire de recherche</h2>
+								<p>Recherche indépendante par matricule pour afficher seulement le jour d’aujourd’hui, avec le planning, le choix, la période et le repas pris.</p>
+							</div>
+						</div>
+						<form id="formulaireSearchForm" class="search-grid">
+							<div class="field">
+								<span>Matricule</span>
+								<input id="formulaireMatriculeInput" type="text" placeholder="Entrez le matricule" />
+							</div>
+							<div class="actions">
+								<button type="submit" class="primary-button">Rechercher</button>
+								<button id="formulaireResetButton" type="button" class="secondary-button">Réinitialiser</button>
+							</div>
+						</form>
+						<div id="formulaireResults" class="results-list empty-state">Lancez une recherche dans Formulaire pour voir le jour d’aujourd’hui du matricule recherché.</div>
+					</section>
 
-					<section id="rajoutSection" class="panel app-card rajout-panel">
+					<section id="page-rajout" class="panel app-card rajout-panel page-section">
 						<div id="rajoutStatus" style="margin-top:8px;color:var(--muted)"></div>
 						<div id="rajoutList" class="results-list rajout-list-only" style="margin-top:12px"></div>
 					</section>
@@ -1590,6 +1760,6 @@ tbody tr:nth-child(even) td {
 			</div>
 		</div>
 
-		<script src="./script.js"></script>
+		<script src="./app.js"></script>
 	</body>
 </html>

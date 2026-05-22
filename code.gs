@@ -1,48 +1,107 @@
+// ==================== CONFIGURATION ====================
 const SPREADSHEET_ID = '1q5S-tv8hA3_uzjnFJ6MPvqfYLBB2t0P3F5R0tNm0Okk';
 const SHEET_NAME = 'Cantine';
 const RAJOUT_SHEET_NAME = 'Rajout';
 
 const DAY_CONFIG = [
-	{ key: 'lundi', label: 'Lundi', planningIndex: 2, choiceIndex: 3 },
-	{ key: 'mardi', label: 'Mardi', planningIndex: 4, choiceIndex: 5 },
-	{ key: 'mercredi', label: 'Mercredi', planningIndex: 6, choiceIndex: 7 },
-	{ key: 'jeudi', label: 'Jeudi', planningIndex: 8, choiceIndex: 9 },
-	{ key: 'vendredi', label: 'Vendredi', planningIndex: 10, choiceIndex: 11 },
-	{ key: 'samedi', label: 'Samedi', planningIndex: 12, choiceIndex: 13 },
-	{ key: 'dimanche', label: 'Dimanche', planningIndex: 14, choiceIndex: 15 },
+	{ key: 'lundi', label: 'Lundi', planningIndex: 2, periodIndex: 3, choiceIndex: 4, checkingIndex: 5 },
+	{ key: 'mardi', label: 'Mardi', planningIndex: 6, periodIndex: 7, choiceIndex: 8, checkingIndex: 9 },
+	{ key: 'mercredi', label: 'Mercredi', planningIndex: 10, periodIndex: 11, choiceIndex: 12, checkingIndex: 13 },
+	{ key: 'jeudi', label: 'Jeudi', planningIndex: 14, periodIndex: 15, choiceIndex: 16, checkingIndex: 17 },
+	{ key: 'vendredi', label: 'Vendredi', planningIndex: 18, periodIndex: 19, choiceIndex: 20, checkingIndex: 21 },
+	{ key: 'samedi', label: 'Samedi', planningIndex: 22, periodIndex: 23, choiceIndex: 24, checkingIndex: 25 },
+	{ key: 'dimanche', label: 'Dimanche', planningIndex: 26, periodIndex: 27, choiceIndex: 28, checkingIndex: 29 },
 ];
 
+// ==================== FONCTION PRINCIPALE doGet ====================
 function doGet(e) {
+	// Gestion des requêtes OPTIONS (preflight CORS pour Chrome)
+	if (e && e.method === 'OPTIONS') {
+		return handleCorsPreflight();
+	}
+
 	const params = (e && e.parameter) || {};
 	const wantsJson = String(params.format || '').toLowerCase() === 'json';
 	const callback = String(params.callback || '').trim();
 	const action = String(params.action || '').trim();
 
+	// Fonction utilitaire pour créer une réponse avec headers CORS
+	function createResponse(data, isJsonp = false, callbackName = '') {
+		let output;
+		let mimeType;
+		
+		if (isJsonp && callbackName && callbackName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+			output = ContentService.createTextOutput(`${callbackName}(${JSON.stringify(data)});`);
+			mimeType = ContentService.MimeType.JAVASCRIPT;
+		} else {
+			output = ContentService.createTextOutput(JSON.stringify(data));
+			mimeType = ContentService.MimeType.JSON;
+		}
+		
+		output.setMimeType(mimeType);
+		
+		return output;
+	}
+
+	// Traitement de l'action rajoutAdd
 	if (action === 'rajoutAdd') {
-		const payload = addRajoutRow(params);
-		if (callback) {
-			const body = `${callback}(${JSON.stringify(payload)});`;
-			return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JAVASCRIPT);
+		try {
+			const payload = addRajoutRow(params);
+			return createResponse(payload, !!callback, callback);
+		} catch (error) {
+			return createResponse({ 
+				success: false, 
+				error: error.toString(),
+				message: 'Erreur lors de l\'enregistrement du rajout'
+			}, !!callback, callback);
 		}
-		return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(ContentService.MimeType.JSON);
 	}
 
+	if (action === 'markMealTaken') {
+		try {
+			const payload = markMealTaken(params);
+			return createResponse(payload, !!callback, callback);
+		} catch (error) {
+			return createResponse({
+				success: false,
+				error: error.toString(),
+				message: 'Erreur lors de la prise du repas',
+			}, !!callback, callback);
+		}
+	}
+
+	// Retour des données JSON
 	if (wantsJson || callback) {
-		const payload = getDashboardData();
-
-		if (callback) {
-			const body = `${callback}(${JSON.stringify(payload)});`;
-			return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JAVASCRIPT);
+		try {
+			const payload = getDashboardData();
+			return createResponse(payload, !!callback, callback);
+		} catch (error) {
+			return createResponse({ 
+				error: error.toString(),
+				rows: [],
+				totalRows: 0,
+				noPlanningCount: 0,
+				noChoiceCount: 0,
+				rajoutCount: 0,
+				days: DAY_CONFIG.map(({ key, label }) => ({ key, label }))
+			}, !!callback, callback);
 		}
-
-		return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(ContentService.MimeType.JSON);
 	}
 
+	// Interface HTML par défaut
 	return HtmlService.createHtmlOutputFromFile('index')
-		.setTitle('Cantine')
+		.setTitle('Cantine Connecteo')
 		.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+// ==================== GESTION CORS PREFLIGHT ====================
+function handleCorsPreflight() {
+	const output = ContentService.createTextOutput('');
+	output.setMimeType(ContentService.MimeType.TEXT);
+	return output;
+}
+
+// ==================== FONCTIONS EXISTANTES (à conserver) ====================
 function include(filename) {
 	return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
@@ -76,9 +135,18 @@ function getDashboardData() {
 			matricule: row[0] || '',
 			nomPrenom: row[1] || '',
 			days: DAY_CONFIG.reduce((accumulator, day) => {
+				const planning = row[day.planningIndex] || '';
+				const period = row[day.periodIndex] || '';
+				const choice = row[day.choiceIndex] || '';
+				const checking = row[day.checkingIndex] || '';
+				const isChecked = String(checking).trim().toUpperCase() === 'X';
+
 				accumulator[day.key] = {
-					planning: row[day.planningIndex] || '',
-					choice: row[day.choiceIndex] || '',
+					planning,
+					period,
+					choice,
+					checking,
+					isChecked,
 				};
 				return accumulator;
 			}, {}),
@@ -112,7 +180,6 @@ function addRajoutRow(params) {
 
 	const sheet = ensureRajoutSheet_();
 
-	// Columns in Rajout sheet: 1=Matricule, 2=Date, 3=Lundi ... 9=Dimanche
 	const dayColMap = {
 		lundi: 3,
 		mardi: 4,
@@ -123,13 +190,12 @@ function addRajoutRow(params) {
 		dimanche: 9,
 	};
 
-	// Try to find all existing rows for the same matricule (normalized)
 	const data = sheet.getDataRange().getValues();
 	const matchingRows = [];
 	for (let i = 1; i < data.length; i += 1) {
 		const rowMat = normalizeKey_(data[i][0]);
 		if (rowMat && rowMat === normalizeKey_(matricule)) {
-			matchingRows.push(i + 1); // sheet rows are 1-based
+			matchingRows.push(i + 1);
 		}
 	}
 
@@ -137,8 +203,6 @@ function addRajoutRow(params) {
 		const masterRow = matchingRows[0];
 		const dayCols = Object.values(dayColMap);
 
-		// Sync the master row exactly to the current selection: selected days get X,
-		// all other day cells are cleared so the sheet matches the latest update.
 		dayCols.forEach((col) => {
 			sheet.getRange(masterRow, col).clearContent();
 		});
@@ -149,12 +213,10 @@ function addRajoutRow(params) {
 			sheet.getRange(masterRow, col).setValue('X');
 		});
 
-		// Keep the most recent date on the master row.
 		if (dateValue) {
 			sheet.getRange(masterRow, 2).setValue(dateValue).setNumberFormat('dd/MM/yyyy');
 		}
 
-		// Remove any duplicate rows for the same matricule so the sheet stays unique.
 		matchingRows
 			.slice(1)
 			.sort((a, b) => b - a)
@@ -172,12 +234,10 @@ function addRajoutRow(params) {
 		};
 	}
 
-	// No existing row found -> append a new one
 	const rowValues = [matricule, dateValue, '', '', '', '', '', '', ''];
 	jourKeys.forEach((jourKey) => {
 		const col = dayColMap[jourKey];
 		if (!col) return;
-		// convert to 0-based index for the array
 		rowValues[col - 1] = 'X';
 	});
 	sheet.appendRow(rowValues);
@@ -193,6 +253,71 @@ function addRajoutRow(params) {
 		rajoutCount: Math.max(0, sheet.getLastRow() - 1),
 		updated: false,
 	};
+}
+
+function markMealTaken(params) {
+	const matricule = String(params.matricule || '').trim();
+	const dayKey = normalizeDayKey_(params.day || params.dayKey || params.jour || '');
+
+	if (!matricule) {
+		throw new Error('Matricule obligatoire.');
+	}
+
+	if (!dayKey) {
+		throw new Error('Jour invalide.');
+	}
+
+	const dayConfig = DAY_CONFIG.find((day) => day.key === dayKey);
+	if (!dayConfig) {
+		throw new Error('Jour inconnu.');
+	}
+
+	const lock = LockService.getScriptLock();
+	lock.waitLock(5000);
+	try {
+		const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+		if (!sheet) {
+			throw new Error('Feuille introuvable: ' + SHEET_NAME);
+		}
+
+		const values = sheet.getDataRange().getValues();
+		let targetRow = -1;
+
+		for (let i = 1; i < values.length; i += 1) {
+			if (normalizeKey_(values[i][0]) === normalizeKey_(matricule)) {
+				targetRow = i + 1;
+				break;
+			}
+		}
+
+		if (targetRow < 0) {
+			throw new Error('Matricule introuvable.');
+		}
+
+		const checkingCell = sheet.getRange(targetRow, dayConfig.checkingIndex + 1);
+		const currentValue = String(checkingCell.getDisplayValue() || '').trim().toUpperCase();
+		if (currentValue === 'X') {
+			return {
+				success: true,
+				alreadyTaken: true,
+				message: 'Ce repas est deja pris.',
+				day: dayKey,
+				matricule,
+			};
+		}
+
+		checkingCell.setValue('X');
+
+		return {
+			success: true,
+			alreadyTaken: false,
+			message: 'Repas marque comme pris.',
+			day: dayKey,
+			matricule,
+		};
+	} finally {
+		lock.releaseLock();
+	}
 }
 
 function ensureRajoutSheet_() {
