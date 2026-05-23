@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyHNaApWpdRuPLcMYnx5-Nbug3PK9d4AEnjFHZf_VODAVsvTFtF1I-wS8FS-msJx2nY/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyuv3zmoQ72MUqoOSxedZnOjHP7s99yzVFqPhzomJpGXvhPCpLpFDpgVbbNbZ8bCjsr/exec';
 
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
@@ -42,6 +42,8 @@ const state = {
 	searchPeriodMode: 'all',
 	overviewHtml: '',
 	heroSlideshow: null,
+	simpleRajoutCount: 0,
+	newCollaboratorCount: 0,
 };
 
 const elements = {};
@@ -50,7 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.totalRows = document.getElementById('totalRows');
 	elements.noPlanningCount = document.getElementById('noPlanningCount');
 	elements.noChoiceCount = document.getElementById('noChoiceCount');
-	elements.rajoutCount = document.getElementById('rajoutCount');
+	elements.simpleRajoutCount = document.getElementById('simpleRajoutCount');
+	elements.newCollaboratorCount = document.getElementById('newCollaboratorCount');
 	elements.searchForm = document.getElementById('searchForm');
 	elements.matriculeInput = document.getElementById('matriculeInput');
 	elements.formulaireSearchForm = document.getElementById('formulaireSearchForm');
@@ -295,52 +298,52 @@ function getCollaboratorImageSrc(row) {
 	return `data:image/png;base64,${rawValue}`;
 }
 
-function getFormulaireDisplayState(row, dayData) {
+function getFormulaireDisplayState(row, dayData, dayKey) {
 	const hasPlanning = Boolean(String(dayData?.planning || '').trim());
 	const hasChoice = Boolean(String(dayData?.choice || '').trim());
 	const isAdded = isCollaboratorAdded(row);
+	const isRajoutDay = Boolean(String(dayData?.rajout || '').trim()) || Boolean(row && row.rajouts && row.rajouts[String(dayKey || '')]);
+	const isRajout = isAdded || isRajoutDay;
 
 	if (isAdded) {
 		return {
 			className: 'is-added',
-			label: 'Rajouté',
-			note: 'Collaborateur ajouté via le formulaire.',
+			badgeClass: 'is-new-collaborator',
+			label: 'Nouveau collaborateur',
+			note: 'Ajouté via le formulaire. Vérifiez le repas ici.',
 			showAction: true,
 		};
 	}
 
-	if (hasPlanning && hasChoice) {
+	if (isRajout) {
 		return {
-			className: 'is-green',
-			label: 'Compatible',
-			note: 'Planning et choix présents.',
+			className: hasPlanning && hasChoice ? 'is-green' : 'is-orange',
+			badgeClass: 'is-rajout-day',
+			label: 'Rajout pour jour',
+			note: hasPlanning && hasChoice
+				? 'Personne rajoutée pour aujourd\'hui.'
+				: 'Rajout du jour sans planning ou sans choix.',
 			showAction: true,
 		};
 	}
 
-	if (!hasPlanning && hasChoice) {
-		return {
-			className: 'is-orange',
-			label: 'Planning manquant',
-			note: 'Planning absent.',
-			showAction: true,
-		};
-	}
-
-	if (hasPlanning && !hasChoice) {
+	// If there is no rajout at all and planning/choice are missing -> hide action and mark as alert/red
+	if (!hasPlanning || !hasChoice) {
 		return {
 			className: 'is-red',
-			label: 'Choix manquant',
-			note: 'Choix absent.',
-			showAction: true,
+			badgeClass: 'is-red',
+			label: 'Incomplet',
+			note: `${!hasPlanning ? 'Planning manquant' : ''}${!hasPlanning && !hasChoice ? ' · ' : ''}${!hasChoice ? 'Choix manquant' : ''} · Non rajouté aujourd\'hui`,
+			showAction: false,
 		};
 	}
 
 	return {
-		className: 'is-empty',
-		label: 'Aucune donnée',
-		note: 'Pas de planning, pas de choix, pas de rajout.',
-		showAction: false,
+		className: 'is-green',
+		badgeClass: 'is-green',
+		label: 'Compatible',
+		note: 'Planning et choix présents.',
+		showAction: true,
 	};
 }
 
@@ -702,7 +705,8 @@ async function loadData() {
         if (elements.totalRows) elements.totalRows.textContent = String(normalized.totalRows);
         if (elements.noPlanningCount) elements.noPlanningCount.textContent = String(normalized.noPlanningCount);
         if (elements.noChoiceCount) elements.noChoiceCount.textContent = String(normalized.noChoiceCount);
-        if (elements.rajoutCount) elements.rajoutCount.textContent = String(normalized.rajoutCount);
+		if (elements.simpleRajoutCount) elements.simpleRajoutCount.textContent = String(normalized.simpleRajoutCount);
+		if (elements.newCollaboratorCount) elements.newCollaboratorCount.textContent = String(normalized.newCollaboratorCount);
         
         showIdleState();
 		if (document.body.classList.contains('page-rajout-active')) {
@@ -804,8 +808,11 @@ function onRajoutSubmit(event) {
 	loadJsonp(`${WEB_APP_URL}?${params.toString()}`, 15000)
 		.then((payload) => {
 			elements.rajoutStatus.textContent = payload && payload.updated ? 'Rajout mis à jour.' : 'Rajout ajouté.';
-			if (payload && payload.rajoutCount != null) {
-				elements.rajoutCount.textContent = String(payload.rajoutCount);
+			if (payload && payload.simpleRajoutCount != null && elements.simpleRajoutCount) {
+				elements.simpleRajoutCount.textContent = String(payload.simpleRajoutCount);
+			}
+			if (payload && payload.newCollaboratorCount != null && elements.newCollaboratorCount) {
+				elements.newCollaboratorCount.textContent = String(payload.newCollaboratorCount);
 			}
 
 			// Refresh data from server so the new/updated rajout is reflected in the UI
@@ -881,7 +888,9 @@ function normalizePayload(payload) {
 			totalRows: Number(payload.totalRows || payload.rows.length),
 			noPlanningCount: Number(payload.noPlanningCount ?? summary.noPlanningCount),
 			noChoiceCount: Number(payload.noChoiceCount ?? summary.noChoiceCount),
-			rajoutCount: Number(payload.rajoutCount ?? 0),
+			simpleRajoutCount: Number(payload.simpleRajoutCount ?? payload.rajoutCount ?? summary.simpleRajoutCount),
+			newCollaboratorCount: Number(payload.newCollaboratorCount ?? summary.newCollaboratorCount),
+			rajoutCount: Number(payload.simpleRajoutCount ?? payload.rajoutCount ?? summary.simpleRajoutCount),
 			days: Array.isArray(payload.days) && payload.days.length ? payload.days : DAY_OPTIONS,
 		};
 	}
@@ -894,7 +903,9 @@ function normalizePayload(payload) {
 			totalRows: rows.length,
 			noPlanningCount: summary.noPlanningCount,
 			noChoiceCount: summary.noChoiceCount,
-			rajoutCount: 0,
+			simpleRajoutCount: summary.simpleRajoutCount,
+			newCollaboratorCount: summary.newCollaboratorCount,
+			rajoutCount: summary.simpleRajoutCount,
 			days: DAY_OPTIONS,
 		};
 	}
@@ -914,24 +925,36 @@ function fromRawValues(values) {
 			matricule: row[0] || '',
 			nomPrenom: row[1] || '',
 			days: {
-				lundi: { planning: row[2] || '', period: row[3] || '', choice: row[4] || '', checking: row[5] || '', isChecked: normalizeText(row[5]) === 'x' },
-				mardi: { planning: row[6] || '', period: row[7] || '', choice: row[8] || '', checking: row[9] || '', isChecked: normalizeText(row[9]) === 'x' },
-				mercredi: { planning: row[10] || '', period: row[11] || '', choice: row[12] || '', checking: row[13] || '', isChecked: normalizeText(row[13]) === 'x' },
-				jeudi: { planning: row[14] || '', period: row[15] || '', choice: row[16] || '', checking: row[17] || '', isChecked: normalizeText(row[17]) === 'x' },
-				vendredi: { planning: row[18] || '', period: row[19] || '', choice: row[20] || '', checking: row[21] || '', isChecked: normalizeText(row[21]) === 'x' },
-				samedi: { planning: row[22] || '', period: row[23] || '', choice: row[24] || '', checking: row[25] || '', isChecked: normalizeText(row[25]) === 'x' },
-				dimanche: { planning: row[26] || '', period: row[27] || '', choice: row[28] || '', checking: row[29] || '', isChecked: normalizeText(row[29]) === 'x' },
+				lundi: { planning: row[2] || '', period: row[3] || '', choice: row[4] || '', rajout: row[5] || '', checking: row[6] || '', isChecked: normalizeText(row[6]) === 'x' },
+				mardi: { planning: row[7] || '', period: row[8] || '', choice: row[9] || '', rajout: row[10] || '', checking: row[11] || '', isChecked: normalizeText(row[11]) === 'x' },
+				mercredi: { planning: row[12] || '', period: row[13] || '', choice: row[14] || '', rajout: row[15] || '', checking: row[16] || '', isChecked: normalizeText(row[16]) === 'x' },
+				jeudi: { planning: row[17] || '', period: row[18] || '', choice: row[19] || '', rajout: row[20] || '', checking: row[21] || '', isChecked: normalizeText(row[21]) === 'x' },
+				vendredi: { planning: row[22] || '', period: row[23] || '', choice: row[24] || '', rajout: row[25] || '', checking: row[26] || '', isChecked: normalizeText(row[26]) === 'x' },
+				samedi: { planning: row[27] || '', period: row[28] || '', choice: row[29] || '', rajout: row[30] || '', checking: row[31] || '', isChecked: normalizeText(row[31]) === 'x' },
+				dimanche: { planning: row[32] || '', period: row[33] || '', choice: row[34] || '', rajout: row[35] || '', checking: row[36] || '', isChecked: normalizeText(row[36]) === 'x' },
 			},
+			isSimpleRajout: normalizeText(row[37]) === 'x',
+			isAddedCollaborator: normalizeText(row[38]) === 'x',
+			rajouts: DAY_OPTIONS.reduce((accumulator, day) => {
+				if (String(row[{ lundi: 5, mardi: 10, mercredi: 15, jeudi: 20, vendredi: 25, samedi: 30, dimanche: 35 }[day.key]] || '').trim().toUpperCase() === 'X') {
+					accumulator[day.key] = true;
+				}
+				return accumulator;
+			}, {}),
 		}));
 }
 
 function computeSummary(rows) {
 	let noPlanningCount = 0;
 	let noChoiceCount = 0;
+	let simpleRajoutCount = 0;
+	let newCollaboratorCount = 0;
 
 	rows.forEach((row) => {
 		const hasPlanning = DAY_OPTIONS.some((day) => String(row.days?.[day.key]?.planning || '').trim() !== '');
 		const hasChoice = DAY_OPTIONS.some((day) => String(row.days?.[day.key]?.choice || '').trim() !== '');
+		const isSimpleRajout = Boolean(row.isSimpleRajout) || normalizeText(row.simpleRajout) === 'x';
+		const isNewCollaborator = Boolean(row.isAddedCollaborator) || normalizeText(row.newCollaborator) === 'x';
 
 		if (!hasPlanning) {
 			noPlanningCount += 1;
@@ -940,9 +963,17 @@ function computeSummary(rows) {
 		if (!hasChoice) {
 			noChoiceCount += 1;
 		}
+
+		if (isSimpleRajout) {
+			simpleRajoutCount += 1;
+		}
+
+		if (isNewCollaborator) {
+			newCollaboratorCount += 1;
+		}
 	});
 
-	return { noPlanningCount, noChoiceCount };
+	return { noPlanningCount, noChoiceCount, simpleRajoutCount, newCollaboratorCount };
 }
 
 function renderDayOptions() {
@@ -970,7 +1001,7 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 			const abbrev = { lundi: 'Lun', mardi: 'Mar', mercredi: 'Mer', jeudi: 'Jeu', vendredi: 'Ven', samedi: 'Sam', dimanche: 'Dim' };
 			const rajoutDays = Object.keys(row.rajouts || {});
 			const dayItems = DAY_OPTIONS;
-			const rowIsRajout = isCollaboratorAdded(row);
+				const rowIsRajout = isCollaboratorAdded(row) || Object.values(row.days || {}).some((day) => String(day?.rajout || '').trim());
 			const allVisibleReady = dayItems.length > 0 && dayItems.every((day) => isDayReady(row.days?.[day.key]));
 			const checkedCount = dayItems.filter((day) => isDayChecked(row.days?.[day.key])).length;
 			const stateClass = rowIsRajout ? 'is-added' : (allVisibleReady ? 'is-ok' : 'is-alert');
@@ -1002,9 +1033,6 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 									${renderWeekdayCell('Période', dayData.period, 'Jour / Nuit')}
 									${renderWeekdayCell('Choix', dayData.choice, 'Pas de choix')}
 									<div class="day-status ${ready ? 'is-ready' : 'is-missing'} ${checked ? 'is-checked' : ''}">${ready ? 'Compatible' : 'Incomplet'}${checked ? ' · repas pris' : ''}</div>
-									<div class="day-action-row">
-										${renderMealAction(row, day.key, dayData, checked)}
-									</div>
 								</div>
 							`;
 						}).join('')}
@@ -1056,10 +1084,12 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 			return `
 				<div class="formulaire-result ${displayState.className} ${checked ? 'is-checked' : ''}">
 					<div class="formulaire-result-glow"></div>
-					<div class="formulaire-result-layout">
+					<div class="formulaire-result-layout formulaire-result-layout--avatar">
+						<div class="formulaire-result-avatar" ${imageStyle} aria-hidden="true"></div>
+
 						<div class="formulaire-result-main">
 							<div class="formulaire-result-header">
-								<div class="formulaire-result-name-block">
+								<div>
 									<div class="formulaire-result-name">${escapeHtml(row.nomPrenom)}</div>
 									<div class="formulaire-result-matricule">${escapeHtml(row.matricule)}</div>
 								</div>
@@ -1067,14 +1097,14 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 							</div>
 
 							<div class="formulaire-result-summary-badges">
-								<span class="result-state-pill ${displayState.className}">${escapeHtml(displayState.label)}</span>
+								<span class="result-state-pill ${escapeHtml(displayState.badgeClass || displayState.className)}">${escapeHtml(displayState.label)}</span>
 								${checked ? '<span class="result-state-pill is-checked">Repas déjà pris</span>' : ''}
 							</div>
 
-							<div class="formulaire-result-grid">
+							<div class="formulaire-result-grid formulaire-result-grid--compact">
 								<div class="formulaire-result-item">
 									<span>Matricule - Nom</span>
-									<strong>${escapeHtml(row.matricule)} - ${escapeHtml(row.nomPrenom)}</strong>
+									<strong>${escapeHtml(row.matricule)} — ${escapeHtml(row.nomPrenom)}</strong>
 								</div>
 								<div class="formulaire-result-item">
 									<span>Période</span>
@@ -1091,21 +1121,12 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 								<div class="formulaire-result-item formulaire-result-item--check ${showAction ? '' : 'is-hidden'}">
 									<span>Checking</span>
 									${showAction ? `
-										<label class="formulaire-checkbox-wrap">
-											<input type="checkbox" class="formulaire-meal-checkbox" data-meal-action="take" data-meal-day="${escapeHtml(todayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}" ${checked ? 'checked' : ''} ${checked ? 'disabled' : ''} />
-											<strong>${checked ? 'Repas déjà pris' : 'Cocher si le repas est pris'}</strong>
-										</label>
-									` : '<strong>Aucune action disponible</strong>'}
+										${checked ? '<strong>Repas déjà pris</strong>' : `<button type="button" class="formulaire-action-button day-action-button" data-meal-action="take" data-meal-day="${escapeHtml(todayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}">Marquer repas pris</button>`}
+									` : '<strong class="formulaire-no-action">Aucune action disponible</strong>'}
 								</div>
 							</div>
 
 							<div class="formulaire-result-footnote ${displayState.className}">${checked ? 'Ce repas est deja pris.' : displayState.note}</div>
-						</div>
-
-						<div class="formulaire-result-rail">
-							<div class="formulaire-result-image-bar bar-one ${imageSrc ? 'has-image' : 'no-image'}" ${imageStyle}></div>
-							<div class="formulaire-result-image-bar bar-two ${imageSrc ? 'has-image' : 'no-image'}" ${imageStyle}></div>
-							<div class="formulaire-result-image-bar bar-three ${imageSrc ? 'has-image' : 'no-image'}" ${imageStyle}></div>
 						</div>
 					</div>
 
