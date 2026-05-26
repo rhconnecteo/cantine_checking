@@ -234,9 +234,6 @@ function addRajoutRow(params) {
 	});
 
 	sheet.getRange(targetRow, markerIndex + 1).setValue('X');
-	if (dateValue) {
-		sheet.getRange(targetRow, 2).setValue(dateValue).setNumberFormat('dd/MM/yyyy');
-	}
 
 	const refreshedSummary = getDashboardData();
 	const isNewCollaborator = normalizeKey_(sheet.getRange(targetRow, NEW_COLLABORATOR_INDEX + 1).getDisplayValue()) === 'x';
@@ -392,8 +389,8 @@ function getSummaryCounts_(rows) {
 	rows.forEach((row) => {
 		const hasPlanning = DAY_CONFIG.some((day) => String(row.days[day.key].planning || '').trim() !== '');
 		const hasChoice = DAY_CONFIG.some((day) => String(row.days[day.key].choice || '').trim() !== '');
-		const isSimpleRajout = String(row[SIMPLE_RAJOUT_INDEX] || '').trim().toUpperCase() === 'X';
-		const isNewCollaborator = String(row[NEW_COLLABORATOR_INDEX] || '').trim().toUpperCase() === 'X';
+		const isSimpleRajout = Boolean(row && row.isSimpleRajout);
+		const isNewCollaborator = Boolean(row && row.isAddedCollaborator);
 
 		if (!hasPlanning) {
 			noPlanningCount += 1;

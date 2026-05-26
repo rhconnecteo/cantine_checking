@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyuv3zmoQ72MUqoOSxedZnOjHP7s99yzVFqPhzomJpGXvhPCpLpFDpgVbbNbZ8bCjsr/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw0ICvaVHs0ZYnY_KH_LZ73v7S_rwKVYGQ_W7Wjnqot4FWaltd-caOQKxynH_Ec2CCF/exec';
 
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
@@ -143,7 +143,7 @@ function resetRajoutFormState() {
 	if (elements.rajoutDate) {
 		elements.rajoutDate.value = '';
 	}
-	setRajoutDays([]);
+	setDefaultRajoutJour();
 	setRajoutMatricule('');
 	state.currentSearchMatricule = '';
 	if (elements.rajoutStatus) {
@@ -179,6 +179,7 @@ function bindEvents() {
 
 	if (elements.formulaireResults) {
 		elements.formulaireResults.addEventListener('change', onFormulaireMealToggle);
+		elements.formulaireResults.addEventListener('click', onFormulaireMealClick);
 	}
 
 	if (elements.rajoutForm) {
@@ -291,6 +292,22 @@ function isCollaboratorAdded(row) {
 	return Boolean(row?.isAddedCollaborator) || normalizeText(row?.source) === 'ajout_form';
 }
 
+function isMissingPlaceholder(value, placeholders) {
+	const normalized = normalizeText(value);
+	return !normalized || placeholders.includes(normalized);
+}
+
+function isHourPlanningValue(value) {
+	const normalized = String(value || '').trim().toLowerCase();
+	if (!normalized) return false;
+	return /^\d{1,2}$/.test(normalized)
+		|| /^\d{1,2}:\d{2}$/.test(normalized)
+		|| /^\d{1,2}:\d{2}:\d{2}$/.test(normalized)
+		|| /^\d{1,2}h\d{2}$/.test(normalized)
+		|| /^\d{1,2}h\d{2}:\d{2}$/.test(normalized)
+		|| /^\d{1,2}[:h]\d{2}\s*-\s*\d{1,2}[:h]\d{2}$/.test(normalized);
+}
+
 function getCollaboratorImageSrc(row) {
 	const rawValue = String(row?.imageBase64 || '').trim();
 	if (!rawValue) return '';
@@ -299,50 +316,59 @@ function getCollaboratorImageSrc(row) {
 }
 
 function getFormulaireDisplayState(row, dayData, dayKey) {
-	const hasPlanning = Boolean(String(dayData?.planning || '').trim());
-	const hasChoice = Boolean(String(dayData?.choice || '').trim());
+	const planningValue = String(dayData?.planning || '').trim();
+	const hasPlanning = !isMissingPlaceholder(planningValue, ['pas de planning', 'aucun planning', 'planning']);
+	const isPlanningHour = isHourPlanningValue(planningValue);
+	const hasChoice = !isMissingPlaceholder(dayData?.choice, ['pas de choix', 'aucun choix', 'choix']);
 	const isAdded = isCollaboratorAdded(row);
 	const isRajoutDay = Boolean(String(dayData?.rajout || '').trim()) || Boolean(row && row.rajouts && row.rajouts[String(dayKey || '')]);
 	const isRajout = isAdded || isRajoutDay;
 
+	if (!hasChoice) {
+		return {
+			className: 'is-red',
+			badgeClass: 'is-red',
+			label: '',
+			note: 'Choix manquant',
+			showAction: false,
+		};
+	}
+
+	if (!isPlanningHour) {
+		return {
+			className: 'is-orange',
+			badgeClass: isRajout ? 'is-rajout-added' : 'is-orange',
+			label: '',
+			note: hasPlanning ? 'Le planning n\'est pas au format heure.' : 'Planning manquant.',
+			showAction: true,
+		};
+	}
+
 	if (isAdded) {
 		return {
-			className: 'is-added',
-			badgeClass: 'is-new-collaborator',
-			label: 'Nouveau collaborateur',
-			note: 'Ajouté via le formulaire. Vérifiez le repas ici.',
+			className: 'is-green',
+			badgeClass: 'is-rajout-added',
+			label: '',
+			note: 'Rajouté',
 			showAction: true,
 		};
 	}
 
 	if (isRajout) {
 		return {
-			className: hasPlanning && hasChoice ? 'is-green' : 'is-orange',
-			badgeClass: 'is-rajout-day',
-			label: 'Rajout pour jour',
-			note: hasPlanning && hasChoice
-				? 'Personne rajoutée pour aujourd\'hui.'
-				: 'Rajout du jour sans planning ou sans choix.',
+			className: 'is-green',
+			badgeClass: 'is-rajout-added',
+			label: '',
+			note: 'Rajouté',
 			showAction: true,
-		};
-	}
-
-	// If there is no rajout at all and planning/choice are missing -> hide action and mark as alert/red
-	if (!hasPlanning || !hasChoice) {
-		return {
-			className: 'is-red',
-			badgeClass: 'is-red',
-			label: 'Incomplet',
-			note: `${!hasPlanning ? 'Planning manquant' : ''}${!hasPlanning && !hasChoice ? ' · ' : ''}${!hasChoice ? 'Choix manquant' : ''} · Non rajouté aujourd\'hui`,
-			showAction: false,
 		};
 	}
 
 	return {
 		className: 'is-green',
 		badgeClass: 'is-green',
-		label: 'Compatible',
-		note: 'Planning et choix présents.',
+		label: '',
+		note: '',
 		showAction: true,
 	};
 }
@@ -432,6 +458,75 @@ function onFormulaireMealToggle(event) {
 			input.disabled = false;
 			input.checked = false;
 			renderCurrentFormulaireSearch();
+		});
+}
+
+function onFormulaireMealClick(event) {
+	const button = event.target && event.target.closest ? event.target.closest('button[data-meal-action="take"]') : null;
+	if (!button) return;
+
+	const matricule = String(button.getAttribute('data-meal-matricule') || '').trim();
+	const dayKey = String(button.getAttribute('data-meal-day') || '').trim();
+	if (!matricule || !dayKey) return;
+
+	button.disabled = true;
+	button.textContent = 'Enregistrement...';
+
+	const resultBlock = button.closest('.formulaire-result');
+	const note = resultBlock ? resultBlock.querySelector('.formulaire-result-footnote') : null;
+	if (note) note.textContent = 'Enregistrement du repas...';
+
+	const params = new URLSearchParams({
+		action: 'markMealTaken',
+		matricule,
+		day: dayKey,
+	});
+
+	loadJsonp(`${WEB_APP_URL}?${params.toString()}`, 12000)
+		.then((payload) => {
+			if (!payload || payload.success === false) {
+				throw new Error((payload && payload.message) || 'Erreur lors de la prise du repas.');
+			}
+
+			const targetRow = (state.rows || []).find((row) => normalizeText(row.matricule) === normalizeText(matricule));
+			if (targetRow) {
+				const targetDay = targetRow.days && targetRow.days[dayKey];
+				if (targetDay) {
+					targetDay.checking = 'X';
+					targetDay.isChecked = true;
+				}
+			}
+
+			if (note) {
+				note.textContent = payload.alreadyTaken ? 'Ce repas est déjà pris.' : 'Repas enregistré.';
+			}
+
+			if (resultBlock) {
+				resultBlock.classList.add('is-checked');
+				resultBlock.classList.remove('is-alert');
+				resultBlock.classList.remove('is-red');
+			}
+
+			button.textContent = 'Repas pris';
+			button.disabled = true;
+
+			setTimeout(() => {
+				loadData().catch((error) => {
+					console.warn('Rafraichissement apres prise du repas echoue:', error);
+				});
+			}, 0);
+
+			renderCurrentFormulaireSearch();
+		})
+		.catch((error) => {
+			if (note) {
+				note.textContent = error && error.message ? error.message : 'Impossible d’enregistrer le repas.';
+			}
+			button.disabled = false;
+			button.textContent = 'Marquer repas pris';
+			if (resultBlock) {
+				resultBlock.classList.remove('is-checked');
+			}
 		});
 }
 
@@ -785,7 +880,7 @@ function onRajoutSubmit(event) {
 	const matricule = normalizeText(state.currentSearchMatricule);
 	const submittedMatricule = state.currentSearchMatricule;
 	const dateValue = elements.rajoutDate.value;
-	const jours = String(elements.rajoutJour.value || '')
+	const jours = String(elements.rajoutJour.value || state.selectedRajoutDays.join(',') || getTodayDayKey())
 		.split(',')
 		.map((value) => normalizeText(value))
 		.filter(Boolean);
@@ -1001,11 +1096,11 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 			const abbrev = { lundi: 'Lun', mardi: 'Mar', mercredi: 'Mer', jeudi: 'Jeu', vendredi: 'Ven', samedi: 'Sam', dimanche: 'Dim' };
 			const rajoutDays = Object.keys(row.rajouts || {});
 			const dayItems = DAY_OPTIONS;
-				const rowIsRajout = isCollaboratorAdded(row) || Object.values(row.days || {}).some((day) => String(day?.rajout || '').trim());
+			const rowHasRajout = isCollaboratorAdded(row) || Object.values(row.days || {}).some((day) => String(day?.rajout || '').trim());
 			const allVisibleReady = dayItems.length > 0 && dayItems.every((day) => isDayReady(row.days?.[day.key]));
 			const checkedCount = dayItems.filter((day) => isDayChecked(row.days?.[day.key])).length;
-			const stateClass = rowIsRajout ? 'is-added' : (allVisibleReady ? 'is-ok' : 'is-alert');
-			const stateLabel = rowIsRajout ? 'Rajouté' : (allVisibleReady ? 'Dossier pret' : 'Dossier incomplet');
+			const stateClass = allVisibleReady ? 'is-ok' : 'is-alert';
+			const stateLabel = rowHasRajout ? 'Rajouté' : (allVisibleReady ? 'Dossier pret' : 'Dossier incomplet');
 			return `
 				<article class="result-card result-card--search ${stateClass}">
 					<div class="result-topline result-side">
@@ -1025,14 +1120,14 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 							const dayData = row.days?.[day.key] || {};
 							const ready = isDayReady(dayData);
 							const checked = isDayChecked(dayData);
-							const columnIsRajout = rowIsRajout || rajoutDays.includes(day.key);
+							const dayIsRajout = Boolean(String(dayData?.rajout || '').trim()) || rajoutDays.includes(day.key);
 							return `
-								<div class="week-column ${columnIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing')} ${checked ? 'is-checked' : ''}">
+								<div class="week-column ${dayIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing')} ${checked ? 'is-checked' : ''}">
 									<h4>${escapeHtml(isCompact ? (abbrev[day.key] || day.label) : day.label)}</h4>
 									${renderWeekdayCell('Planning', dayData.planning, 'Pas de planning')}
 									${renderWeekdayCell('Période', dayData.period, 'Jour / Nuit')}
 									${renderWeekdayCell('Choix', dayData.choice, 'Pas de choix')}
-									<div class="day-status ${ready ? 'is-ready' : 'is-missing'} ${checked ? 'is-checked' : ''}">${ready ? 'Compatible' : 'Incomplet'}${checked ? ' · repas pris' : ''}</div>
+									<div class="day-status ${(dayIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing'))} ${checked ? 'is-checked' : ''}">${checked ? 'Repas pris' : (dayIsRajout ? 'Rajouté' : (ready ? 'Compatible' : 'Incomplet'))}</div>
 								</div>
 							`;
 						}).join('')}
@@ -1081,6 +1176,11 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 			const showAction = displayState.showAction;
 			const imageSrc = getCollaboratorImageSrc(row);
 			const imageStyle = imageSrc ? `style="background-image:url('${escapeHtml(imageSrc)}')"` : '';
+			const planningValue = String(dayData.planning || '').trim();
+			const choiceValue = String(dayData.choice || '').trim();
+			const planningGridClass = !choiceValue || !planningValue
+				? 'is-planning-missing'
+				: (!isHourPlanningValue(planningValue) ? 'is-planning-non-hour' : 'is-planning-ok');
 			return `
 				<div class="formulaire-result ${displayState.className} ${checked ? 'is-checked' : ''}">
 					<div class="formulaire-result-glow"></div>
@@ -1089,48 +1189,44 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 
 						<div class="formulaire-result-main">
 							<div class="formulaire-result-header">
-								<div>
+								<div class="formulaire-result-identity">
 									<div class="formulaire-result-name">${escapeHtml(row.nomPrenom)}</div>
-									<div class="formulaire-result-matricule">${escapeHtml(row.matricule)}</div>
 								</div>
-								<div class="formulaire-result-day">${escapeHtml(dayLabel)}</div>
+								${displayState.badgeClass === 'is-rajout-added' ? '<div class="formulaire-result-rajout-badge">Rajouté</div>' : ''}
 							</div>
 
-							<div class="formulaire-result-summary-badges">
-								<span class="result-state-pill ${escapeHtml(displayState.badgeClass || displayState.className)}">${escapeHtml(displayState.label)}</span>
-								${checked ? '<span class="result-state-pill is-checked">Repas déjà pris</span>' : ''}
-							</div>
-
-							<div class="formulaire-result-grid formulaire-result-grid--compact">
+							<div class="formulaire-result-grid formulaire-result-grid--compact formulaire-result-grid--planning ${planningGridClass}">
 								<div class="formulaire-result-item">
-									<span>Matricule - Nom</span>
-									<strong>${escapeHtml(row.matricule)} — ${escapeHtml(row.nomPrenom)}</strong>
+									<span>Nom et Prénoms :</span>
+									<strong>${escapeHtml(row.nomPrenom)}</strong>
 								</div>
 								<div class="formulaire-result-item">
-									<span>Période</span>
+									<span>Matricule :</span>
+									<strong>${escapeHtml(row.matricule)}</strong>
+								</div>
+								<div class="formulaire-result-item">
+									<span>Période :</span>
 									<strong>${escapeHtml(dayData.period || 'Jour / Nuit')}</strong>
 								</div>
 								<div class="formulaire-result-item">
-									<span>Planning</span>
+									<span>Planning :</span>
 									<strong>${escapeHtml(dayData.planning || 'Pas de planning')}</strong>
 								</div>
 								<div class="formulaire-result-item">
-									<span>Choix</span>
+									<span>Choix :</span>
 									<strong>${escapeHtml(dayData.choice || 'Pas de choix')}</strong>
 								</div>
 								<div class="formulaire-result-item formulaire-result-item--check ${showAction ? '' : 'is-hidden'}">
-									<span>Checking</span>
+									<span>Action :</span>
 									${showAction ? `
 										${checked ? '<strong>Repas déjà pris</strong>' : `<button type="button" class="formulaire-action-button day-action-button" data-meal-action="take" data-meal-day="${escapeHtml(todayKey)}" data-meal-matricule="${escapeHtml(row.matricule)}">Marquer repas pris</button>`}
 									` : '<strong class="formulaire-no-action">Aucune action disponible</strong>'}
 								</div>
 							</div>
 
-							<div class="formulaire-result-footnote ${displayState.className}">${checked ? 'Ce repas est deja pris.' : displayState.note}</div>
+							${displayState.badgeClass === 'is-rajout-added' ? '<div class="formulaire-result-footnote is-rajout">Rajouté</div>' : ''}
 						</div>
 					</div>
-
-					<div class="formulaire-result-status ${displayState.className} ${checked ? 'is-checked' : ''}">${displayState.label}${checked ? ' · repas pris' : ''}</div>
 				</div>
 			`;
 		})
