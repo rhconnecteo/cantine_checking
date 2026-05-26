@@ -2,9 +2,10 @@
 const SPREADSHEET_ID = '1q5S-tv8hA3_uzjnFJ6MPvqfYLBB2t0P3F5R0tNm0Okk';
 const SHEET_NAME = 'Cantine';
 
-const TOTAL_COLUMNS = 39;
+const TOTAL_COLUMNS = 40;
 const SIMPLE_RAJOUT_INDEX = 37;
 const NEW_COLLABORATOR_INDEX = 38;
+const AVATAR_INDEX = 39;
 
 const DAY_CONFIG = [
 	{ key: 'lundi', label: 'Lundi', planningIndex: 2, periodIndex: 3, choiceIndex: 4, rajoutIndex: 5, checkingIndex: 6 },
@@ -172,6 +173,7 @@ function getDashboardData() {
 				return accumulator;
 			}, {}),
 			imageBase64: '',
+			imageBase64: row[AVATAR_INDEX] || '',
 			source: normalizeKey_(row[NEW_COLLABORATOR_INDEX]) === 'x' ? 'AJOUT_FORM' : (normalizeKey_(row[SIMPLE_RAJOUT_INDEX]) === 'x' ? 'RAJOUT_SIMPLE' : ''),
 			isSimpleRajout: normalizeKey_(row[SIMPLE_RAJOUT_INDEX]) === 'x',
 			isAddedCollaborator: normalizeKey_(row[NEW_COLLABORATOR_INDEX]) === 'x',

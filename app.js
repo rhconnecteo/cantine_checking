@@ -1,5 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw0ICvaVHs0ZYnY_KH_LZ73v7S_rwKVYGQ_W7Wjnqot4FWaltd-caOQKxynH_Ec2CCF/exec';
-
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxPxbI37K7HHzOrZbCVUzjF-353QtR92fI6rWe_LnMJIYPLweK-_TUE89UUE2VeI8uq/exec';
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
 	{ key: 'mardi', label: 'Mardi' },
@@ -288,6 +287,18 @@ function isDayChecked(dayData) {
 	return normalizeText(dayData?.checking) === 'x' || String(dayData?.isChecked || '').toLowerCase() === 'true';
 }
 
+function setDayCheckedOptimistic(matricule, dayKey, checked) {
+	const targetRow = (state.rows || []).find((row) => normalizeText(row.matricule) === normalizeText(matricule));
+	if (!targetRow || !targetRow.days || !targetRow.days[dayKey]) {
+		return null;
+	}
+
+	const targetDay = targetRow.days[dayKey];
+	targetDay.checking = checked ? 'X' : '';
+	targetDay.isChecked = Boolean(checked);
+	return targetRow;
+}
+
 function isCollaboratorAdded(row) {
 	return Boolean(row?.isAddedCollaborator) || normalizeText(row?.source) === 'ajout_form';
 }
@@ -324,6 +335,16 @@ function getFormulaireDisplayState(row, dayData, dayKey) {
 	const isRajoutDay = Boolean(String(dayData?.rajout || '').trim()) || Boolean(row && row.rajouts && row.rajouts[String(dayKey || '')]);
 	const isRajout = isAdded || isRajoutDay;
 
+	if (isRajout) {
+		return {
+			className: 'is-green',
+			badgeClass: 'is-rajout-added',
+			label: '',
+			note: 'Rajouté',
+			showAction: true,
+		};
+	}
+
 	if (!hasChoice) {
 		return {
 			className: 'is-red',
@@ -337,30 +358,10 @@ function getFormulaireDisplayState(row, dayData, dayKey) {
 	if (!isPlanningHour) {
 		return {
 			className: 'is-orange',
-			badgeClass: isRajout ? 'is-rajout-added' : 'is-orange',
+			badgeClass: 'is-orange',
 			label: '',
 			note: hasPlanning ? 'Le planning n\'est pas au format heure.' : 'Planning manquant.',
-			showAction: true,
-		};
-	}
-
-	if (isAdded) {
-		return {
-			className: 'is-green',
-			badgeClass: 'is-rajout-added',
-			label: '',
-			note: 'Rajouté',
-			showAction: true,
-		};
-	}
-
-	if (isRajout) {
-		return {
-			className: 'is-green',
-			badgeClass: 'is-rajout-added',
-			label: '',
-			note: 'Rajouté',
-			showAction: true,
+			showAction: false,
 		};
 	}
 
@@ -482,19 +483,15 @@ function onFormulaireMealClick(event) {
 		day: dayKey,
 	});
 
+	const optimisticRow = setDayCheckedOptimistic(matricule, dayKey, true);
+	if (optimisticRow) {
+		renderCurrentFormulaireSearch();
+	}
+
 	loadJsonp(`${WEB_APP_URL}?${params.toString()}`, 12000)
 		.then((payload) => {
 			if (!payload || payload.success === false) {
 				throw new Error((payload && payload.message) || 'Erreur lors de la prise du repas.');
-			}
-
-			const targetRow = (state.rows || []).find((row) => normalizeText(row.matricule) === normalizeText(matricule));
-			if (targetRow) {
-				const targetDay = targetRow.days && targetRow.days[dayKey];
-				if (targetDay) {
-					targetDay.checking = 'X';
-					targetDay.isChecked = true;
-				}
 			}
 
 			if (note) {
@@ -515,10 +512,9 @@ function onFormulaireMealClick(event) {
 					console.warn('Rafraichissement apres prise du repas echoue:', error);
 				});
 			}, 0);
-
-			renderCurrentFormulaireSearch();
 		})
 		.catch((error) => {
+			setDayCheckedOptimistic(matricule, dayKey, false);
 			if (note) {
 				note.textContent = error && error.message ? error.message : 'Impossible d’enregistrer le repas.';
 			}
@@ -1030,6 +1026,7 @@ function fromRawValues(values) {
 			},
 			isSimpleRajout: normalizeText(row[37]) === 'x',
 			isAddedCollaborator: normalizeText(row[38]) === 'x',
+			imageBase64: row[39] || '',
 			rajouts: DAY_OPTIONS.reduce((accumulator, day) => {
 				if (String(row[{ lundi: 5, mardi: 10, mercredi: 15, jeudi: 20, vendredi: 25, samedi: 30, dimanche: 35 }[day.key]] || '').trim().toUpperCase() === 'X') {
 					accumulator[day.key] = true;
