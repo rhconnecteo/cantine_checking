@@ -768,12 +768,58 @@ button:hover {
 		padding: 16px;
 	}
 
+	.formulaire-result-layout--avatar {
+		grid-template-columns: 1fr;
+		justify-items: start;
+	}
+
+	.formulaire-result-avatar {
+		width: 84px;
+		height: 84px;
+	}
+
+	.formulaire-result-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.formulaire-result-rajout-badge {
+		align-self: flex-start;
+	}
+
+	.formulaire-result-grid,
+	.formulaire-result-grid--compact,
+	.formulaire-result-grid--planning {
+		grid-template-columns: 1fr;
+	}
+
+	.formulaire-result-item--check {
+		grid-column: auto;
+	}
+
+	.formulaire-result-item strong {
+		overflow-wrap: anywhere;
+	}
+
 	.formulaire-result-rail {
 		grid-template-columns: 1fr;
 	}
 
 	.formulaire-result-image-bar {
 		min-height: 86px;
+	}
+
+	.formulaire-result-name {
+		font-size: 0.98rem;
+	}
+
+	.formulaire-result-item {
+		padding: 10px 11px;
+	}
+
+	.formulaire-result-item span,
+	.formulaire-result-item strong {
+		font-size: 0.82rem;
 	}
 }
 

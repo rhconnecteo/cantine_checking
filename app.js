@@ -1372,7 +1372,7 @@ function showIdleState() {
 }
 
 function setStatus(message) {
-	document.title = `Cantine - ${message}`;
+	document.title = 'Cantine Connecteo';
 }
 
 function normalizeText(value) {

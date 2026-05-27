@@ -4,7 +4,7 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" type="image/jpg" href="restau.jpg" />
-		<title>Cantine - Complexe</title>
+		<title>Cantine Connecteo</title>
 		<style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -278,13 +278,17 @@ h1 {
 /* Three-column hero layout for desktop, stacks on small screens */
 .hero-columns {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(3, minmax(220px, 1fr));
 	gap: 12px;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	scroll-snap-type: x mandatory;
 }
 .hero-column {
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
+	scroll-snap-align: start;
 }
 .hero-column-title {
 	margin: 0 0 8px;
@@ -1357,7 +1361,7 @@ tbody tr:nth-child(even) td {
 
 @media (max-width: 420px) {
 	body {
-		font-size: 11px;
+		font-size: 13px;
 		overflow-x: hidden;
 	}
 
@@ -1380,13 +1384,13 @@ tbody tr:nth-child(even) td {
 	}
 
 	.sidebar-title {
-		font-size: 0.6rem;
+		font-size: 0.72rem;
 	}
 
 	.sidebar-button {
 		min-height: 36px;
 		padding: 0 10px;
-		font-size: 0.78rem;
+		font-size: 0.85rem;
 	}
 
 	.sidebar-metric {
@@ -1394,17 +1398,18 @@ tbody tr:nth-child(even) td {
 	}
 
 	.sidebar-metric span {
-		font-size: 0.62rem;
+		font-size: 0.7rem;
 		line-height: 1.1;
 	}
 
 	.sidebar-metric strong {
-		font-size: 0.85rem;
+		font-size: 0.95rem;
 	}
 
 	.hero-copy {
 		display: block;
-		font-size: 0.9rem;
+		font-size: 0.82rem;
+		line-height: 1.45;
 	}
 
 	.hero {
@@ -1419,8 +1424,10 @@ tbody tr:nth-child(even) td {
 	}
 
 	.hero-columns {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 6px;
+		width: 100%;
+		grid-template-columns: repeat(3, minmax(220px, 1fr));
+		gap: 8px;
+		overflow-x: auto;
 	}
 
 	.hero-column-title {
@@ -1460,7 +1467,7 @@ tbody tr:nth-child(even) td {
 	}
 
 	h1 {
-		font-size: 1.05rem;
+		font-size: 1.25rem;
 		line-height: 1;
 	}
 
@@ -1486,7 +1493,7 @@ tbody tr:nth-child(even) td {
 	}
 
 	.panel-header h2 {
-		font-size: 0.85rem;
+		font-size: 0.95rem;
 	}
 
 	.panel-header p,
@@ -1503,7 +1510,7 @@ tbody tr:nth-child(even) td {
 	}
 
 	.field span {
-		font-size: 0.65rem;
+		font-size: 0.72rem;
 		margin-bottom: 5px;
 	}
 
@@ -1511,8 +1518,8 @@ tbody tr:nth-child(even) td {
 	.field select,
 	button,
 	.fixed-value {
-		min-height: 34px;
-		font-size: 0.76rem;
+		min-height: 40px;
+		font-size: 0.82rem;
 	}
 
 	.actions {
@@ -1567,8 +1574,8 @@ tbody tr:nth-child(even) td {
 	/* Mobile: make rajout name & matricule smaller and compact the table */
 	.result-card .rajout-card-info,
 	.rajout-card-info {
-		flex: 0 0 86px !important;
-		max-width: 86px !important;
+		flex: 0 0 96px !important;
+		max-width: 96px !important;
 		min-width: 0 !important;
 	}
 
@@ -1591,7 +1598,7 @@ tbody tr:nth-child(even) td {
 	}
 
 	.rajout-card-table {
-		max-width: calc(100vw - 96px) !important;
+		max-width: calc(100vw - 106px) !important;
 	}
 
 	.rajout-table,
@@ -1721,8 +1728,10 @@ tbody tr:nth-child(even) td {
 
 	@media (max-width: 1100px) {
 		.hero-columns {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+			width: 100%;
+			grid-template-columns: repeat(3, minmax(220px, 1fr));
 			gap: 8px;
+			overflow-x: auto;
 		}
 		.hero-column-title {
 			margin-bottom: 5px;
