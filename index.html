@@ -442,8 +442,15 @@ body.page-rajout-active .hero-visual-shell {
 	display: none;
 }
 
+/* Hide the main hero visuals but allow the rajout-specific hero visuals */
 body.page-rajout-active .hero-visual {
 	display: none;
+}
+
+/* Unhide hero visuals only inside the rajout hero zone */
+body.page-rajout-active .hero-rajout-zone .hero-visual,
+body.page-rajout-active #rajoutHeroZone .hero-visual {
+	display: block;
 }
 
 body.page-rajout-active .hero-rajout-zone {
@@ -1994,6 +2001,32 @@ tbody tr:nth-child(even) td {
 					</section>
 
 					<section id="page-rajout" class="panel app-card rajout-panel page-section">
+						<!-- Rajout hero zone: displays three hero columns (dessert, image, riz) when rajout page is active -->
+						<section class="hero-rajout-zone" id="rajoutHeroZone">
+							<div class="hero-columns">
+								<div class="hero-column">
+									<figure class="hero-visual">
+										<div class="hero-visual-frame">
+											<div id="rajout-slideshow-left" class="hero-slideshow" aria-label="Images slideshow"></div>
+										</div>
+									</figure>
+								</div>
+								<div class="hero-column">
+									<figure class="hero-visual">
+										<div class="hero-visual-frame">
+											<div id="rajout-slideshow-center" class="hero-slideshow" aria-label="Riz slideshow"></div>
+										</div>
+									</figure>
+								</div>
+								<div class="hero-column">
+									<figure class="hero-visual">
+										<div class="hero-visual-frame">
+											<div id="rajout-slideshow-right" class="hero-slideshow" aria-label="Desserts slideshow"></div>
+										</div>
+									</figure>
+								</div>
+							</div>
+						</section>
 						<div id="rajoutStatus" style="margin-top:8px;color:var(--muted)"></div>
 						<div id="rajoutList" class="results-list rajout-list-only" style="margin-top:12px"></div>
 					</section>
