@@ -1844,10 +1844,7 @@ tbody tr:nth-child(even) td {
 								<span class="sidebar-button-icon" aria-hidden="true">🧾</span>
 								<span class="sidebar-button-label">Formulaire</span>
 							</button>
-							<button id="navRechercheButton" class="sidebar-button is-active" type="button" aria-label="Recherche">
-								<span class="sidebar-button-icon" aria-hidden="true">🔎</span>
-								<span class="sidebar-button-label">Recherche</span>
-							</button>
+
 							<button id="navRajoutButton" class="sidebar-button" type="button" aria-label="Rajouts">
 								<span class="sidebar-button-icon" aria-hidden="true">➕</span>
 								<span class="sidebar-button-label">Rajouts</span>
@@ -1912,73 +1909,7 @@ tbody tr:nth-child(even) td {
 						</div>
 					</section>
 
-					<section id="page-recherche" class="panel app-card page-section">
-						<div class="panel-header">
-							<div>
-								<h2>Recherche générale</h2>
-								<p>Recherche par matricule, affichage des résultats, puis formulaire de rajout juste en dessous.</p>
-							</div>
-						</div>
-						<form id="searchForm" class="search-grid">
-							<div class="field">
-								<span>Matricule</span>
-								<input id="matriculeInput" type="text" placeholder="Entrez le matricule" />
-							</div>
-							<div class="actions">
-								<button type="submit" class="primary-button">Rechercher</button>
-								<button id="resetButton" type="button" class="secondary-button">Réinitialiser</button>
-							</div>
-						</form>
-						<div id="resultsHint" style="margin-top:4px;color:var(--muted)"></div>
-						<div id="searchResults" class="results-list empty-state" style="margin-top:12px">Lancez une recherche pour afficher les résultats du matricule.</div>
-						<div class="collaborator-panel">
-							<div class="panel-header">
-								<div>
-									<h3>Nouveau collaborateur</h3>
-									<p>Ajout manuel d’un collaborateur dans la base, avec planning et choix laissés vides au départ.</p>
-								</div>
-							</div>
-							<form id="collaboratorForm" class="search-grid collaborator-form">
-								<div class="field">
-									<span>Matricule</span>
-									<input id="collaboratorMatriculeInput" type="text" placeholder="Matricule du collaborateur" />
-								</div>
-								<div class="field">
-									<span>Nom et prénom</span>
-									<input id="collaboratorNameInput" type="text" placeholder="Nom complet" />
-								</div>
-								<div class="actions">
-									<button type="submit" class="primary-button">Ajouter</button>
-								</div>
-							</form>
-							<div id="collaboratorStatus" class="form-status" style="margin-top:8px;color:var(--muted)"></div>
-						</div>
-						<div id="searchRajoutZone" class="search-rajout-zone">
-							<form id="rajoutForm" class="compact-rajout rajout-form-layout">
-								<div class="field rajout-matricule-block">
-									<span>Matricule sélectionné</span>
-									<div id="rajoutMatriculeDisplay" class="fixed-value">Aucun matricule sélectionné</div>
-								</div>
 
-								<div class="rajout-meta-row">
-									<div class="field rajout-date-block">
-										<span>Date</span>
-										<input id="rajoutDate" type="date" />
-									</div>
-									</br>
-									<div class="actions rajout-action-block">
-										<button type="submit" class="primary-button">Rajout</button>
-									</div>
-								</div>
-
-								<div class="field rajout-days-block">
-									<span>Jours</span>
-									<input id="rajoutJour" type="hidden" />
-									<div id="rajoutDayButtons" class="rajout-day-group"></div>
-								</div>
-							</form>
-						</div>
-					</section>
                     
 					<section id="page-formulaire" class="panel app-card page-section">
 						<div class="panel-header">

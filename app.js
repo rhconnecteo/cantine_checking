@@ -98,10 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		bindEvents();
 		adjustSidebarRajoutVisibility();
-		showSection('page-recherche');
-		setActiveNav(elements.navRechercheButton);
-		// ensure the rajout form is positioned into the search sidebar by default
-		positionRajoutForm('page-recherche');
+		showSection('page-formulaire');
+		setActiveNav(elements.navFormulaireButton);
+		// ensure the rajout form is positioned into the formulaire area by default
+		positionRajoutForm('page-formulaire');
 		initializeHeroSlideshow();
 		loadData();
 });
