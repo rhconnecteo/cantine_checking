@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxD66znAFJRukZloI15T7nxjf3OetC6yBYE41qtXKzlu8943cw9tbH7wCYmtdg4SGGy/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwf9MmWDLHzskc6FqVXJ5sGkcgb18Cc8eGaqa6-Z2OYO-1NMtqzW5PZCmGMJFHIVG55/exec';
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
 	{ key: 'mardi', label: 'Mardi' },
@@ -36,6 +36,7 @@ const state = {
 	days: DAY_OPTIONS,
 	lastResults: [],
 	selectedRajoutDays: [],
+	selectedCollaboratorDays: [],
 	currentSearchMatricule: '',
 	formulaireSearchMatricule: '',
 	searchPeriodMode: 'all',
@@ -54,16 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.noChoiceCount = document.getElementById('noChoiceCount');
 	elements.simpleRajoutCount = document.getElementById('simpleRajoutCount');
 	elements.newCollaboratorCount = document.getElementById('newCollaboratorCount');
-	elements.searchForm = document.getElementById('searchForm');
-	elements.matriculeInput = document.getElementById('matriculeInput');
+	// search form and input removed from UI
 	elements.formulaireSearchForm = document.getElementById('formulaireSearchForm');
 	elements.formulaireMatriculeInput = document.getElementById('formulaireMatriculeInput');
-	elements.collaboratorForm = document.getElementById('collaboratorForm');
-	elements.collaboratorMatriculeInput = document.getElementById('collaboratorMatriculeInput');
-	elements.collaboratorNameInput = document.getElementById('collaboratorNameInput');
-	elements.collaboratorStatus = document.getElementById('collaboratorStatus');
-	elements.searchPeriodMode = document.getElementById('searchPeriodMode');
-	elements.resetButton = document.getElementById('resetButton');
+	// collaborator and search-specific elements removed
 	elements.formulaireResetButton = document.getElementById('formulaireResetButton');
 	elements.rajoutForm = document.getElementById('rajoutForm');
 	elements.rajoutMatriculeDisplay = document.getElementById('rajoutMatriculeDisplay');
@@ -72,13 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.rajoutDayButtons = document.getElementById('rajoutDayButtons');
 	elements.rajoutStatus = document.getElementById('rajoutStatus');
 	elements.rajoutSubmitButton = elements.rajoutForm ? elements.rajoutForm.querySelector('button[type="submit"]') : null;
-	elements.resultsHint = document.getElementById('resultsHint');
-	elements.searchResults = document.getElementById('searchResults');
 	elements.formulaireResults = document.getElementById('formulaireResults');
-	elements.searchRajoutZone = document.getElementById('searchRajoutZone');
-	elements.rajoutHeroZone = document.getElementById('rajoutHeroZone');
 	elements.navFormulaireButton = document.getElementById('navFormulaireButton');
-	elements.navRechercheButton = document.getElementById('navRechercheButton');
 	elements.navRajoutButton = document.getElementById('navRajoutButton');
 	elements.sidebarToggleButton = document.getElementById('sidebarToggleButton');
 	elements.sidebar = document.querySelector('.sidebar');
@@ -86,6 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.rajoutList = document.getElementById('rajoutList');
 
 	state.sidebarCollapsed = readSidebarCollapsedState();
+	if (isMobileViewport()) {
+		state.sidebarCollapsed = false;
+	}
 	applySidebarCollapsedState(state.sidebarCollapsed);
 
 		// Page-aware initialisation: only run features present on the current page
@@ -96,11 +89,15 @@ document.addEventListener('DOMContentLoaded', () => {
 			renderRajoutDayOptions();
 			setDefaultRajoutJour();
 		}
+		if (elements.collaboratorDayButtons) {
+			renderCollaboratorDayOptions();
+			setDefaultCollaboratorDays();
+		}
 		bindEvents();
 		adjustSidebarRajoutVisibility();
 		showSection('page-formulaire');
 		setActiveNav(elements.navFormulaireButton);
-		// ensure the rajout form is positioned into the formulaire area by default
+		// ensure the rajout form visibility is set for formulaire by default
 		positionRajoutForm('page-formulaire');
 		initializeHeroSlideshow();
 		loadData();
@@ -120,17 +117,15 @@ function adjustRajoutSectionVisibility(pageId) {
 }
 
 function ensureSidebarRajoutContainer() {
-	if (!elements.searchRajoutZone) return null;
-	return elements.searchRajoutZone;
+	// rajout form is embedded in the page-rajout now
+	if (!elements.rajoutForm) return null;
+	return elements.rajoutForm;
 }
 
 function positionRajoutForm(pageId) {
 	if (!elements.rajoutForm) return;
-	const isRajoutPage = pageId === 'page-recherche';
-	const sidebarContainer = ensureSidebarRajoutContainer();
-	if (sidebarContainer) {
-		sidebarContainer.style.display = isRajoutPage ? '' : 'none';
-	}
+	// show the rajout form only on the rajout page
+	elements.rajoutForm.style.display = pageId === 'page-rajout' ? '' : 'none';
 }
 
 function setRajoutSubmittingState(isSubmitting) {
@@ -159,29 +154,15 @@ function resetRajoutFormState() {
 }
 
 function bindEvents() {
-	if (elements.searchForm) {
-		elements.searchForm.addEventListener('submit', onSearch);
-	}
-
 	if (elements.formulaireSearchForm) {
 		elements.formulaireSearchForm.addEventListener('submit', onFormulaireSearch);
-	}
-
-	if (elements.collaboratorForm) {
-		elements.collaboratorForm.addEventListener('submit', onCollaboratorSubmit);
-	}
-
-	if (elements.resetButton) {
-		elements.resetButton.addEventListener('click', resetSearch);
 	}
 
 	if (elements.formulaireResetButton) {
 		elements.formulaireResetButton.addEventListener('click', resetFormulaireSearch);
 	}
 
-	if (elements.searchResults) {
-		elements.searchResults.addEventListener('click', onSearchResultsClick);
-	}
+	// search results element has been removed from the UI
 
 	if (elements.formulaireResults) {
 		elements.formulaireResults.addEventListener('change', onFormulaireMealToggle);
@@ -193,7 +174,6 @@ function bindEvents() {
 	}
 
 	bindNavButton(elements.navFormulaireButton, 'page-formulaire');
-	bindNavButton(elements.navRechercheButton, 'page-recherche');
 	bindNavButton(elements.navRajoutButton, 'page-rajout');
 
 	if (elements.navRajoutButton) {
@@ -205,13 +185,7 @@ function bindEvents() {
 		});
 	}
 
-	if (elements.matriculeInput) {
-		elements.matriculeInput.addEventListener('input', () => {
-			if (!elements.matriculeInput.value.trim()) {
-				showIdleState();
-			}
-		});
-	}
+	// matricule input removed from the UI
 
 	if (elements.sidebarToggleButton) {
 		elements.sidebarToggleButton.addEventListener('click', toggleSidebarCollapsed);
@@ -259,11 +233,18 @@ function applySidebarCollapsedState(isCollapsed) {
 }
 
 function toggleSidebarCollapsed() {
+	if (isMobileViewport()) {
+		return;
+	}
 	applySidebarCollapsedState(!state.sidebarCollapsed);
 }
 
+function isMobileViewport() {
+	return window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+}
+
 function showSection(pageId) {
-	const pages = ['page-formulaire', 'page-recherche', 'page-rajout'];
+	const pages = ['page-formulaire', 'page-rajout'];
 	pages.forEach((id) => {
 		const el = document.getElementById(id);
 		if (!el) return;
@@ -276,20 +257,9 @@ function showSection(pageId) {
 		document.body.classList.add('page-rajout-active');
 		adjustRajoutSectionVisibility('page-rajout');
 		positionRajoutForm('page-rajout');
-		setHeroSlideshowPlaying(true);
+		setHeroSlideshowPlaying(false);
 		renderRajoutList();
 		adjustSidebarRajoutVisibility('page-rajout');
-	} else if (pageId === 'page-recherche') {
-		document.body.classList.remove('page-rajout-active');
-		adjustRajoutSectionVisibility('page-recherche');
-		positionRajoutForm('page-recherche');
-		adjustSidebarRajoutVisibility('page-recherche');
-		setHeroSlideshowPlaying(true);
-		if (state.currentSearchMatricule) {
-			runCurrentSearch();
-		} else {
-			showIdleState();
-		}
 	} else {
 		document.body.classList.remove('page-rajout-active');
 		adjustRajoutSectionVisibility('page-formulaire');
@@ -418,6 +388,10 @@ function getFormulaireDisplayState(row, dayData, dayKey) {
 }
 
 function runCurrentSearch() {
+	if (!elements.matriculeInput || !elements.searchResults) {
+		console.warn('runCurrentSearch: search UI not present.');
+		return;
+	}
 	const searchValue = String(elements.matriculeInput && elements.matriculeInput.value || '').trim();
 	const matricule = normalizeText(searchValue);
 	const todayKey = getTodayDayKey();
@@ -439,12 +413,12 @@ function runCurrentSearch() {
 	}
 
 	if (!matches.length) {
-		elements.resultsHint.textContent = 'Aucun matricule correspondant.';
+		if (elements.resultsHint) elements.resultsHint.textContent = 'Aucun matricule correspondant.';
 		renderResults([], `Aucun resultat pour "${escapeHtml(searchValue)}".`, true, 'all', elements.searchResults);
 		return;
 	}
 
-	elements.resultsHint.textContent = `Recherche pour ${searchValue || matricule.toUpperCase()} - ${getDayLabel(todayKey)}.`;
+	if (elements.resultsHint) elements.resultsHint.textContent = `Recherche pour ${searchValue || matricule.toUpperCase()} - ${getDayLabel(todayKey)}.`;
 	renderResults(matches, '', false, 'all', elements.searchResults);
 	scrollToSection('topSection');
 }
@@ -574,10 +548,18 @@ function onCollaboratorSubmit(event) {
 
 	const matricule = String(elements.collaboratorMatriculeInput && elements.collaboratorMatriculeInput.value || '').trim();
 	const nomPrenom = String(elements.collaboratorNameInput && elements.collaboratorNameInput.value || '').trim();
+	const jours = Array.isArray(state.selectedCollaboratorDays) ? state.selectedCollaboratorDays.filter(Boolean) : [];
 
 	if (!matricule || !nomPrenom) {
 		if (elements.collaboratorStatus) {
 			elements.collaboratorStatus.textContent = 'Le matricule et le nom sont obligatoires.';
+		}
+		return;
+	}
+
+	if (!jours.length) {
+		if (elements.collaboratorStatus) {
+			elements.collaboratorStatus.textContent = 'Sélectionnez au moins un jour de repas.';
 		}
 		return;
 	}
@@ -590,6 +572,7 @@ function onCollaboratorSubmit(event) {
 		action: 'addCollaborator',
 		matricule,
 		nomPrenom,
+		jours: jours.join(','),
 	});
 
 	loadJsonp(`${WEB_APP_URL}?${params.toString()}`, 15000)
@@ -605,6 +588,7 @@ function onCollaboratorSubmit(event) {
 			if (elements.collaboratorForm) {
 				elements.collaboratorForm.reset();
 			}
+			setDefaultCollaboratorDays();
 
 			state.formulaireSearchMatricule = normalizeText(matricule);
 			if (elements.formulaireMatriculeInput) {
@@ -673,7 +657,7 @@ function onSearchResultsClick(event) {
 }
 
 function setActiveNav(button) {
-	const buttons = [elements.navFormulaireButton, elements.navRechercheButton, elements.navRajoutButton].filter(Boolean);
+	const buttons = [elements.navFormulaireButton, elements.navRajoutButton].filter(Boolean);
 	buttons.forEach((b) => {
 		if (b === button) b.classList.add('is-active');
 		else b.classList.remove('is-active');
@@ -682,17 +666,6 @@ function setActiveNav(button) {
 
 function renderRajoutList() {
 	if (!elements.rajoutList) return;
-	// If rows are not yet loaded, show a loading state and attempt to refresh
-	if (!Array.isArray(state.rows) || state.rows.length === 0) {
-		elements.rajoutList.innerHTML = '<div class="results-list empty-state">Chargement des rajouts...</div>';
-		// attempt to fetch data then re-render
-		loadData().then(() => {
-			renderRajoutList();
-		}).catch(() => {
-			// leave the loading state; loadData will show errors elsewhere
-		});
-		return;
-	}
 	const rowsWithRajout = (state.rows || []).filter((r) => r.rajouts && Object.keys(r.rajouts).length > 0);
 	if (!rowsWithRajout.length) {
 		elements.rajoutList.innerHTML = '<div class="results-list empty-state">Aucun rajout enregistre.</div>';
@@ -711,16 +684,32 @@ function renderRajoutList() {
 
 	// Sort by matricule for predictability
 	rowsWithRajout.sort((a, b) => (a.matricule || '').localeCompare(b.matricule || ''));
+	const simpleRows = rowsWithRajout.filter((row) => row.isSimpleRajout && !row.isAddedCollaborator);
+	const newCollaboratorRows = rowsWithRajout.filter((row) => row.isAddedCollaborator);
 
-	elements.rajoutList.innerHTML = rowsWithRajout
+	elements.rajoutList.innerHTML = [
+		renderRajoutSectionHtml('Rajout simple', simpleRows, 'simple', abbrev),
+		renderRajoutSectionHtml('Rajout comme nouveau collaborateur', newCollaboratorRows, 'new', abbrev),
+	].filter(Boolean).join('');
+	if (elements.resultsHint) elements.resultsHint.textContent = '';
+	if (elements.searchResults) elements.searchResults.innerHTML = '';
+}
+
+function renderRajoutSectionHtml(sectionTitle, rows, sectionKey, abbrev) {
+	if (!Array.isArray(rows) || !rows.length) {
+		return '';
+	}
+
+	const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+	const rowsHtml = rows
 		.map((row) => {
-			const days = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
-			// build a small inline table showing X for rajout days
 			const cells = days.map((d) => (row.rajouts && row.rajouts[d] ? '<td class="rajout-x">X</td>' : '<td></td>')).join('');
+			const badgeLabel = 'Collab';
 			return `
 				<article class="result-card">
 					<div class="rajout-card-row" style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:6px;width:100%;min-width:0;">
-						<div class="rajout-card-info" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-width:150px;max-width:170px;flex:0 0 160px;">
+						<div class="rajout-card-info" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-width:0;max-width:120px;flex:0 0 120px;">
+							<div class="rajout-type-badge is-collaborator-column" style="background:linear-gradient(135deg,#102a43,#1d4e89);color:#fff;border:1px solid rgba(16,42,67,0.2);box-shadow:0 8px 18px rgba(16,42,67,0.14);">${escapeHtml(badgeLabel)}</div>
 							<div class="rajout-card-name">${escapeHtml(row.nomPrenom)}</div>
 							<div class="rajout-card-meta">${escapeHtml(row.matricule)}</div>
 						</div>
@@ -742,9 +731,19 @@ function renderRajoutList() {
 				</article>
 			`;
 		})
-		.join('');
-	if (elements.resultsHint) elements.resultsHint.textContent = '';
-	if (elements.searchResults) elements.searchResults.innerHTML = '';
+			.join('');
+
+		return `
+			<section class="rajout-section-group rajout-section-group--${escapeHtml(sectionKey)}">
+				<div class="rajout-section-header">
+					<h3>${escapeHtml(sectionTitle)}</h3>
+					<span>${rows.length}</span>
+				</div>
+				<div class="results-list rajout-list-group">
+					${rowsHtml}
+				</div>
+			</section>
+		`;
 }
 
 function renderRajoutListHtml() {
@@ -753,39 +752,16 @@ function renderRajoutListHtml() {
 		return '<div class="results-list empty-state">Aucun rajout enregistre.</div>';
 	}
 
-	const abbrev = { lundi: 'Lun', mardi: 'Mar', mercredi: 'Mer', jeudi: 'Jeu', vendredi: 'Ven', samedi: 'Sam', dimanche: 'Dim' };
+		const abbrev = { lundi: 'Lun', mardi: 'Mar', mercredi: 'Mer', jeudi: 'Jeu', vendredi: 'Ven', samedi: 'Sam', dimanche: 'Dim' };
 	rowsWithRajout.sort((a, b) => (a.matricule || '').localeCompare(b.matricule || ''));
 
-	return rowsWithRajout
-		.map((row) => {
-			const days = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
-			const cells = days.map((d) => (row.rajouts && row.rajouts[d] ? '<td style="text-align:center;font-weight:800;color:var(--accent-strong)">X</td>' : '<td></td>')).join('');
-			return `
-				<article class="result-card">
-					<div class="rajout-card-row" style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:6px;width:100%;min-width:0;">
-						<div class="rajout-card-info" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-width:150px;max-width:170px;flex:0 0 160px;">
-							<div class="rajout-card-name">${escapeHtml(row.nomPrenom)}</div>
-							<div class="rajout-card-meta">${escapeHtml(row.matricule)}</div>
-						</div>
-						<div class="rajout-card-table" style="flex:1 1 auto;min-width:0;margin-left:0;white-space:nowrap;overflow:hidden;max-width:100%;">
-								<table class="rajout-table" style="border-collapse:collapse;white-space:nowrap;width:100%;table-layout:fixed;">
-								<thead>
-									<tr>
-										${days.map((d) => `<th class="rajout-day-th">${escapeHtml(abbrev[d])}</th>`).join('')}
-									</tr>
-								</thead>
-								<tbody>
-									<tr>
-										${cells}
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</div>
-				</article>
-			`;
-		})
-		.join('');
+		const simpleRows = rowsWithRajout.filter((row) => row.isSimpleRajout && !row.isAddedCollaborator);
+		const newCollaboratorRows = rowsWithRajout.filter((row) => row.isAddedCollaborator);
+
+		return [
+			renderRajoutSectionHtml('Rajout simple', simpleRows, 'simple', abbrev),
+			renderRajoutSectionHtml('Rajout comme nouveau collaborateur', newCollaboratorRows, 'new', abbrev),
+		].filter(Boolean).join('');
 }
 
 function openRajoutMainView() {
@@ -853,18 +829,12 @@ async function loadData() {
 		if (elements.simpleRajoutCount) elements.simpleRajoutCount.textContent = String(normalized.simpleRajoutCount);
 		if (elements.newCollaboratorCount) elements.newCollaboratorCount.textContent = String(normalized.newCollaboratorCount);
         
-        showIdleState();
+		showIdleState();
 		if (document.body.classList.contains('page-rajout-active')) {
-            renderRajoutList();
-		} else if (document.getElementById('page-recherche')?.classList.contains('active')) {
-			if (state.currentSearchMatricule) {
-				runCurrentSearch();
-			} else {
-				showIdleState();
-			}
+			renderRajoutList();
 		} else if (document.getElementById('page-formulaire')?.classList.contains('active')) {
 			renderCurrentFormulaireSearch();
-        }
+		}
         setStatus('Pret');
     } catch (error) {
 		try {
@@ -881,12 +851,6 @@ async function loadData() {
 			showIdleState();
 			if (document.body.classList.contains('page-rajout-active')) {
 				renderRajoutList();
-			} else if (document.getElementById('page-recherche')?.classList.contains('active')) {
-				if (state.currentSearchMatricule) {
-					runCurrentSearch();
-				} else {
-					showIdleState();
-				}
 			} else if (document.getElementById('page-formulaire')?.classList.contains('active')) {
 				renderCurrentFormulaireSearch();
 			}
@@ -1049,14 +1013,9 @@ function onRajoutSubmit(event) {
 			// Refresh data from server so the new/updated rajout is reflected in the UI
 			loadData()
 				.then(() => {
-					showSection('page-recherche');
-					if (document.body.classList.contains('page-rajout-active')) {
-						renderRajoutList();
-					}
-					if (submittedMatricule) {
-						runCurrentSearch();
-					}
-					resetRajoutFormState();
+							showSection('page-rajout');
+							renderRajoutList();
+							resetRajoutFormState();
 				})
 				.catch((err) => {
 					// ignore: keep the rajout status already set, but log for debugging
@@ -1088,6 +1047,19 @@ function renderRajoutDayOptions() {
 	});
 }
 
+function renderCollaboratorDayOptions() {
+	if (!elements.collaboratorDayButtons || !elements.collaboratorDays) return;
+	elements.collaboratorDayButtons.innerHTML = DAY_OPTIONS.map(
+		(day) => `<button type="button" class="rajout-day-button collaborator-day-button" data-day="${day.key}">${day.label}</button>`,
+	).join('');
+
+	elements.collaboratorDayButtons.querySelectorAll('.collaborator-day-button').forEach((button) => {
+		button.addEventListener('click', () => {
+			toggleCollaboratorDay(button.getAttribute('data-day') || '');
+		});
+	});
+}
+
 function setRajoutDays(dayKeys) {
 	if (!elements.rajoutJour) return;
 	state.selectedRajoutDays = Array.isArray(dayKeys) ? dayKeys.filter(Boolean) : [];
@@ -1097,6 +1069,33 @@ function setRajoutDays(dayKeys) {
 		const isSelected = state.selectedRajoutDays.includes(button.getAttribute('data-day'));
 		button.classList.toggle('is-selected', isSelected);
 	});
+}
+
+function setCollaboratorDays(dayKeys) {
+	if (!elements.collaboratorDays) return;
+	state.selectedCollaboratorDays = Array.isArray(dayKeys) ? dayKeys.filter(Boolean) : [];
+	elements.collaboratorDays.value = state.selectedCollaboratorDays.join(',');
+	if (!elements.collaboratorDayButtons) return;
+	elements.collaboratorDayButtons.querySelectorAll('.collaborator-day-button').forEach((button) => {
+		const isSelected = state.selectedCollaboratorDays.includes(button.getAttribute('data-day'));
+		button.classList.toggle('is-selected', isSelected);
+	});
+}
+
+function toggleCollaboratorDay(dayKey) {
+	if (!dayKey) return;
+	const current = Array.isArray(state.selectedCollaboratorDays) ? [...state.selectedCollaboratorDays] : [];
+	const index = current.indexOf(dayKey);
+	if (index >= 0) {
+		current.splice(index, 1);
+	} else {
+		current.push(dayKey);
+	}
+	setCollaboratorDays(current);
+}
+
+function setDefaultCollaboratorDays() {
+	setCollaboratorDays([]);
 }
 
 function toggleRajoutDay(dayKey) {
@@ -1262,7 +1261,7 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 								<div class="week-column ${dayIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing')} ${checked ? 'is-checked' : ''}">
 									<h4>${escapeHtml(isCompact ? (abbrev[day.key] || day.label) : day.label)}</h4>
 									${renderWeekdayCell('Planning', dayData.planning, 'Pas de planning')}
-									${renderWeekdayCell('Shift', dayData.period, 'Jour / Nuit')}
+									${renderWeekdayCell('Période', dayData.period, 'Jour / Nuit')}
 									${renderWeekdayCell('Choix', dayData.choice, 'Pas de choix')}
 									<div class="day-status ${(dayIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing'))} ${checked ? 'is-checked' : ''}">${checked ? 'Repas pris' : (dayIsRajout ? 'Rajouté' : (ready ? 'Compatible' : 'Incomplet'))}</div>
 								</div>
@@ -1342,7 +1341,7 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 									<strong>${escapeHtml(row.matricule)}</strong>
 								</div>
 								<div class="formulaire-result-item">
-									<span>Shift :</span>
+									<span>Période :</span>
 									<strong>${escapeHtml(dayData.period || 'Jour / Nuit')}</strong>
 								</div>
 								<div class="formulaire-result-item">
@@ -1412,95 +1411,54 @@ function renderMealAction(row, dayKey, dayData, isChecked) {
 function createSlideshow(containerId, slidesArray, intervalMs = 3600) {
 	const frame = document.getElementById(containerId);
 	if (!frame || !Array.isArray(slidesArray) || slidesArray.length === 0) return null;
-	// create an image element for each slide
+
 	frame.innerHTML = slidesArray
-		.map((slide, i) => `
+		.map((slide, index) => `
 			<img
-				class="hero-slide ${i === 0 ? 'is-active' : ''}"
+				class="hero-slide${index === 0 ? ' is-active' : ''}"
 				src="${escapeHtml(slide.src)}"
 				alt="${escapeHtml(slide.alt)}"
-				loading="eager"
+				loading="${index === 0 ? 'eager' : 'lazy'}"
 				decoding="async"
-				data-index="${i}"
+				aria-hidden="${index === 0 ? 'false' : 'true'}"
 			/>
 		`)
 		.join('');
 
-	const slides = Array.from(frame.querySelectorAll('.hero-slide'));
 	const slideshow = {
 		frame,
-		slides,
+		slides: Array.from(frame.querySelectorAll('.hero-slide')),
 		index: 0,
 		timer: null,
 		intervalMs,
-		start() {
-			if (!this.slides || this.slides.length < 2) return;
-			this.stop();
-			this.timer = setInterval(() => {
-				this.slides[this.index].classList.remove('is-active');
-				this.index = (this.index + 1) % this.slides.length;
-				this.slides[this.index].classList.add('is-active');
-			}, this.intervalMs);
-		},
-		stop() {
-			if (this.timer) {
-				clearInterval(this.timer);
-				this.timer = null;
-			}
-		},
-		destroy() {
-			this.stop();
-			this.frame.innerHTML = '';
-		}
 	};
+
+	if (slideshow.slides.length > 1) {
+		slideshow.timer = window.setInterval(() => {
+			slideshow.index = (slideshow.index + 1) % slideshow.slides.length;
+			slideshow.slides.forEach((slide, slideIndex) => {
+				const isActive = slideIndex === slideshow.index;
+				slide.classList.toggle('is-active', isActive);
+				slide.setAttribute('aria-hidden', String(!isActive));
+			});
+		}, intervalMs);
+	}
+
 	return slideshow;
 }
 
 function initializeHeroSlideshow() {
-	// create static hero frames with one image each to avoid continuous animation cost
 	state.heroSlides = {};
 	state.heroSlides.left = createSlideshow('slideshow-left', HERO_SLIDES_LEFT, 3800);
 	state.heroSlides.center = createSlideshow('slideshow-center', HERO_SLIDES_RIZ, 4200);
 	state.heroSlides.right = createSlideshow('slideshow-right', HERO_SLIDES_DESSERTS, 3600);
-	// rajout page slides (separate containers shown only on rajout page)
 	state.heroSlides.rajoutLeft = createSlideshow('rajout-slideshow-left', HERO_SLIDES_LEFT, 3800);
 	state.heroSlides.rajoutCenter = createSlideshow('rajout-slideshow-center', HERO_SLIDES_RIZ, 4200);
 	state.heroSlides.rajoutRight = createSlideshow('rajout-slideshow-right', HERO_SLIDES_DESSERTS, 3600);
-	// fallback: if slides not visible (CSS/DOM issues), set the first image as background on the frame
-	try {
-		const ensureBackground = (containerId, slidesArray) => {
-			const container = document.getElementById(containerId);
-			if (!container) return;
-			const hasImg = container.querySelector('img');
-			if (hasImg) return;
-			const frame = container.closest('.hero-visual-frame') || container.parentElement;
-			const first = (Array.isArray(slidesArray) && slidesArray[0]) ? slidesArray[0].src : '';
-			if (frame && first) {
-				frame.style.backgroundImage = `url('${first.replace(/'/g, "\\'")}')`;
-				frame.style.backgroundSize = 'cover';
-				frame.style.backgroundPosition = 'center';
-			}
-		};
-		ensureBackground('rajout-slideshow-left', HERO_SLIDES_LEFT);
-		ensureBackground('rajout-slideshow-center', HERO_SLIDES_RIZ);
-		ensureBackground('rajout-slideshow-right', HERO_SLIDES_DESSERTS);
-	} catch (e) {
-		console.warn('rajout slideshow fallback failed', e);
-	}
 }
 
 function setHeroSlideshowPlaying(shouldPlay) {
-	try {
-		if (!state.heroSlides) return Boolean(shouldPlay);
-		Object.values(state.heroSlides).forEach((ss) => {
-			if (!ss) return;
-			if (shouldPlay) ss.start && ss.start();
-			else ss.stop && ss.stop();
-		});
-	} catch (err) {
-		console.warn('setHeroSlideshowPlaying error', err);
-	}
-	return Boolean(shouldPlay);
+	return shouldPlay;
 }
 
 function resetSearch() {

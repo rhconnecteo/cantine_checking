@@ -328,8 +328,14 @@ h1 {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-	opacity: 1;
+	opacity: 0;
 	transform: none;
+	transition: opacity 0.55s ease;
+}
+
+.hero-slide.is-active {
+	opacity: 1;
+	z-index: 1;
 }
 
 .hero-visual-frame::before {
@@ -430,35 +436,6 @@ h1 {
 	height: 56px;
 	background: rgba(217, 119, 6, 0.22);
 	animation-delay: 1.2s;
-}
-
-.hero-rajout-zone,
-#rajoutHeroZone {
-	grid-column: 2;
-	display: none;
-}
-
-body.page-rajout-active .hero-visual-shell {
-	display: none;
-}
-
-/* Hide the main hero visuals but allow the rajout-specific hero visuals */
-body.page-rajout-active .hero-visual {
-	display: none;
-}
-
-/* Unhide hero visuals only inside the rajout hero zone */
-body.page-rajout-active .hero-rajout-zone .hero-visual,
-body.page-rajout-active #rajoutHeroZone .hero-visual {
-	display: block;
-}
-
-body.page-rajout-active .hero-rajout-zone {
-	display: block;
-}
-
-body.page-rajout-active #rajoutHeroZone {
-	display: block;
 }
 
 .hero-link-row {
@@ -1268,6 +1245,25 @@ tbody tr:nth-child(even) td {
 }
 
 @media (max-width: 720px) {
+		body.sidebar-collapsed .dashboard-layout {
+			grid-template-columns: 1fr;
+		}
+
+		body.sidebar-collapsed .sidebar {
+			width: auto;
+			padding: 10px;
+		}
+
+		body.sidebar-collapsed .sidebar-toggle {
+			display: none;
+		}
+
+		body.sidebar-collapsed .sidebar-title,
+		body.sidebar-collapsed .sidebar-metric,
+		body.sidebar-collapsed .sidebar-button-label {
+			display: block;
+		}
+
 	.page-shell {
 		padding: 10px;
 	}
@@ -1665,38 +1661,43 @@ tbody tr:nth-child(even) td {
 	/* Mobile: make rajout name & matricule smaller and compact the table */
 	.result-card .rajout-card-info,
 	.rajout-card-info {
-		flex: 0 0 96px !important;
-		max-width: 96px !important;
+		flex: 0 0 56px !important;
+		max-width: 56px !important;
 		min-width: 0 !important;
 	}
 
 	.result-card .rajout-card-name,
 	.rajout-card-name,
 	.rajout-name {
-		font-size: 0.74rem !important;
-		font-weight: 700 !important;
+		font-size: 0.42rem !important;
+		font-weight: 800 !important;
 		white-space: normal !important;
-		line-height: 1.05 !important;
-		margin-bottom: 2px !important;
+		line-height: 1 !important;
+		margin-bottom: 1px !important;
+		overflow-wrap: anywhere !important;
+		display: -webkit-box !important;
+		-webkit-line-clamp: 2 !important;
+		-webkit-box-orient: vertical !important;
+		overflow: hidden !important;
 	}
 
 	.result-card .rajout-card-meta,
 	.rajout-card-meta,
 	.rajout-matricule {
-		font-size: 0.58rem !important;
+		font-size: 0.36rem !important;
 		white-space: normal !important;
 		color: var(--muted) !important;
 	}
 
 	.rajout-card-table {
-		max-width: calc(100vw - 106px) !important;
+		max-width: calc(100vw - 64px) !important;
 	}
 
 	.rajout-table,
 	.rajout-table th,
 	.rajout-table td {
-		font-size: 0.66rem !important;
-		padding: 2px !important;
+		font-size: 0.48rem !important;
+		padding: 1px !important;
 	}
 
 	.hero-slide {
@@ -1752,8 +1753,9 @@ tbody tr:nth-child(even) td {
 		flex-wrap: nowrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px;
+		gap: 12px;
 		width: 100%;
+		padding: 2px 0;
 	}
 
 	body.page-rajout-active .rajout-card-info {
@@ -1763,22 +1765,25 @@ tbody tr:nth-child(even) td {
 		justify-content: center;
 		gap: 2px;
 		min-width: 0;
-		flex: 0 0 34%;
-		max-width: 34%;
+		flex: 0 0 16% !important;
+		max-width: 16% !important;
 	}
 
 	body.page-rajout-active .rajout-card-name {
-		font-size: 0.88rem;
+		font-size: 0.4rem;
 		font-weight: 800;
-		line-height: 1.1;
+		line-height: 1;
 		color: var(--text);
-		white-space: nowrap;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
 		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 
 	body.page-rajout-active .rajout-card-meta {
-		font-size: 0.66rem;
+		font-size: 0.36rem;
 		font-weight: 700;
 		color: var(--muted);
 		white-space: nowrap;
@@ -1789,8 +1794,86 @@ tbody tr:nth-child(even) td {
 	body.page-rajout-active .rajout-card-table {
 		flex: 1 1 auto;
 		margin-left: auto;
-		max-width: calc(100vw - 130px);
+		max-width: calc(100vw - 58px);
 		overflow: hidden;
+	}
+
+	body.page-rajout-active .rajout-type-badge {
+		font-size: 0.42rem;
+		padding: 2px 5px;
+		line-height: 1;
+	}
+
+	body.page-rajout-active .rajout-day-th,
+	body.page-rajout-active .rajout-x {
+		padding: 0 1px;
+		font-size: 0.36rem;
+		line-height: 1;
+	}
+
+	body.page-rajout-active .rajout-section-group {
+		display: grid;
+		gap: 8px;
+		margin-bottom: 14px;
+	}
+
+	body.page-rajout-active .rajout-section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 10px 12px;
+		border-radius: 14px;
+		background: linear-gradient(135deg, rgba(31, 122, 90, 0.08), rgba(255, 255, 255, 0.92));
+		border: 1px solid rgba(31, 122, 90, 0.12);
+		box-shadow: 0 8px 18px rgba(23, 33, 43, 0.05);
+	}
+
+	body.page-rajout-active .rajout-section-header h3 {
+		margin: 0;
+		font-size: 0.82rem;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--accent-strong);
+	}
+
+	body.page-rajout-active .rajout-section-header span {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 28px;
+		padding: 4px 8px;
+		border-radius: 999px;
+		background: var(--accent-soft);
+		color: var(--accent-strong);
+		font-size: 0.72rem;
+		font-weight: 900;
+	}
+
+	body.page-rajout-active .rajout-list-group {
+		gap: 8px;
+	}
+
+	body.page-rajout-active .rajout-type-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		align-self: flex-start;
+		padding: 4px 9px;
+		border-radius: 999px;
+		font-size: 0.62rem;
+		font-weight: 900;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		white-space: nowrap;
+		border: 1px solid rgba(31, 122, 90, 0.12);
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+	}
+
+	body.page-rajout-active .rajout-type-badge.is-collaborator-column {
+		background: rgba(31, 122, 90, 0.14);
+		color: var(--accent-strong);
 	}
 
 	body.page-rajout-active .rajout-card-info,
@@ -1840,11 +1923,10 @@ tbody tr:nth-child(even) td {
 					<div class="sidebar-content">
 						<div class="sidebar-title">Connecteo</div>
 						<div class="sidebar-nav">
-							<button id="navFormulaireButton" class="sidebar-button" type="button" aria-label="Formulaire">
+							<button id="navFormulaireButton" class="sidebar-button is-active" type="button" aria-label="Formulaire">
 								<span class="sidebar-button-icon" aria-hidden="true">🧾</span>
 								<span class="sidebar-button-label">Formulaire</span>
 							</button>
-
 							<button id="navRajoutButton" class="sidebar-button" type="button" aria-label="Rajouts">
 								<span class="sidebar-button-icon" aria-hidden="true">➕</span>
 								<span class="sidebar-button-label">Rajouts</span>
@@ -1909,7 +1991,7 @@ tbody tr:nth-child(even) td {
 						</div>
 					</section>
 
-
+                    
                     
 					<section id="page-formulaire" class="panel app-card page-section">
 						<div class="panel-header">
@@ -1932,32 +2014,29 @@ tbody tr:nth-child(even) td {
 					</section>
 
 					<section id="page-rajout" class="panel app-card rajout-panel page-section">
-						<!-- Rajout hero zone: displays three hero columns (dessert, image, riz) when rajout page is active -->
-						<section class="hero-rajout-zone" id="rajoutHeroZone">
-							<div class="hero-columns">
-								<div class="hero-column">
-									<figure class="hero-visual">
-										<div class="hero-visual-frame">
-											<div id="rajout-slideshow-left" class="hero-slideshow" aria-label="Images slideshow"></div>
-										</div>
-									</figure>
+						<form id="rajoutForm" class="compact-rajout rajout-form-layout" style="margin-bottom:12px">
+							<div class="field rajout-matricule-block">
+								<span>Matricule sélectionné</span>
+								<div id="rajoutMatriculeDisplay" class="fixed-value">Aucun matricule sélectionné</div>
+							</div>
+
+							<div class="rajout-meta-row">
+								<div class="field rajout-date-block">
+									<span>Date</span>
+									<input id="rajoutDate" type="date" />
 								</div>
-								<div class="hero-column">
-									<figure class="hero-visual">
-										<div class="hero-visual-frame">
-											<div id="rajout-slideshow-center" class="hero-slideshow" aria-label="Riz slideshow"></div>
-										</div>
-									</figure>
-								</div>
-								<div class="hero-column">
-									<figure class="hero-visual">
-										<div class="hero-visual-frame">
-											<div id="rajout-slideshow-right" class="hero-slideshow" aria-label="Desserts slideshow"></div>
-										</div>
-									</figure>
+								</br>
+								<div class="actions rajout-action-block">
+									<button type="submit" class="primary-button">Rajout</button>
 								</div>
 							</div>
-						</section>
+
+							<div class="field rajout-days-block">
+								<span>Jours</span>
+								<input id="rajoutJour" type="hidden" />
+								<div id="rajoutDayButtons" class="rajout-day-group"></div>
+							</div>
+						</form>
 						<div id="rajoutStatus" style="margin-top:8px;color:var(--muted)"></div>
 						<div id="rajoutList" class="results-list rajout-list-only" style="margin-top:12px"></div>
 					</section>
