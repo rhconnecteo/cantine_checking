@@ -65,6 +65,10 @@ body {
 	margin: 0;
 }
 
+body.sidebar-collapsed .dashboard-layout {
+	grid-template-columns: 64px minmax(0, 1fr);
+}
+
 .background-glow {
 	position: absolute;
 	width: 360px;
@@ -95,21 +99,103 @@ body {
 	border: 1px solid rgba(255, 255, 255, 0.52);
 	border-radius: 34px;
 	background: var(--surface);
-	backdrop-filter: blur(20px);
 	box-shadow: var(--shadow);
 }
 
 .sidebar {
 	position: sticky;
-	top: 14px;
-	height: fit-content;
+	top: 12px;
+	align-self: start;
+	max-height: calc(100vh - 24px);
 	padding: 14px;
 	border: 1px solid var(--border);
 	border-radius: 22px;
 	background: rgba(255, 251, 245, 0.92);
-	backdrop-filter: blur(20px);
 	box-shadow: var(--shadow);
-	transform: translateX(-8px);
+	transform: none;
+	min-width: 0;
+	overflow: auto;
+	transition: width 0.22s ease, padding 0.22s ease, transform 0.22s ease;
+}
+
+body.sidebar-collapsed .sidebar {
+	padding: 12px 8px;
+	transform: translateX(0);
+	width: 64px;
+}
+
+.sidebar-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 38px;
+	margin-top: 12px;
+	padding: 0 12px;
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	background: rgba(31, 122, 90, 0.08);
+	color: var(--accent-strong);
+	font-weight: 800;
+	text-align: center;
+	box-shadow: none;
+}
+
+body.sidebar-collapsed .sidebar-toggle {
+	padding: 0;
+	width: 42px;
+	min-height: 42px;
+	margin-left: auto;
+	margin-right: auto;
+	border-radius: 999px;
+}
+
+.sidebar-content {
+	display: grid;
+	gap: 0;
+	min-width: 0;
+	transition: opacity 0.18s ease, transform 0.18s ease, max-width 0.22s ease;
+}
+
+body.sidebar-collapsed .sidebar-content {
+	display: grid;
+}
+
+body.sidebar-collapsed .sidebar-title,
+body.sidebar-collapsed .sidebar-metric,
+body.sidebar-collapsed .sidebar-button-label {
+	display: none;
+}
+
+body.sidebar-collapsed .sidebar-nav {
+	gap: 6px;
+	margin-bottom: 0;
+}
+
+body.sidebar-collapsed .sidebar-button {
+	justify-content: center;
+	padding: 0;
+	min-height: 42px;
+	font-size: 1.05rem;
+	border-radius: 999px;
+	text-align: center;
+	gap: 0;
+}
+
+.sidebar-button-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.05rem;
+	line-height: 1;
+	width: 1.4em;
+	flex: 0 0 auto;
+}
+
+.sidebar-button-label {
+	display: inline-block;
+	min-width: 0;
 }
 
 .sidebar-title {
@@ -228,7 +314,6 @@ h1 {
 	background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(235, 227, 214, 0.92));
 	box-shadow: 0 22px 50px rgba(60, 46, 30, 0.16);
 	border: 1px solid rgba(255, 255, 255, 0.55);
-	animation: heroFloat 8s ease-in-out infinite;
 }
 
 .hero-slideshow {
@@ -243,16 +328,8 @@ h1 {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-	opacity: 0;
-	transform: scale(1.05);
-	transition: opacity 0.8s ease, transform 1.2s ease;
-	will-change: opacity, transform;
-}
-
-.hero-slide.is-active {
 	opacity: 1;
-	transform: scale(1);
-	z-index: 1;
+	transform: none;
 }
 
 .hero-visual-frame::before {
@@ -307,14 +384,12 @@ h1 {
 	padding: 8px 12px;
 	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.78);
-	backdrop-filter: blur(10px);
 	color: var(--accent-strong);
 	font-size: 0.72rem;
 	font-weight: 800;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
 	box-shadow: 0 12px 24px rgba(21, 90, 66, 0.12);
-	animation: chipFloat 5.5s ease-in-out infinite;
 }
 
 .hero-chip.one {
@@ -325,23 +400,19 @@ h1 {
 .hero-chip.two {
 	bottom: 16px;
 	right: 16px;
-	animation-delay: 0.8s;
 }
 
 .hero-chip.three {
 	top: 50%;
 	right: 16px;
 	transform: translateY(-50%);
-	animation-delay: 1.4s;
 }
 
 .hero-glow {
 	position: absolute;
 	z-index: 0;
 	border-radius: 999px;
-	filter: blur(6px);
 	opacity: 0.7;
-	animation: pulseGlow 6s ease-in-out infinite;
 }
 
 .hero-glow.one {
@@ -381,47 +452,6 @@ body.page-rajout-active .hero-rajout-zone {
 
 body.page-rajout-active #rajoutHeroZone {
 	display: block;
-}
-
-@keyframes heroFloat {
-	0%,
-	100% {
-		transform: translateY(0) rotate(0deg);
-	}
-	50% {
-		transform: translateY(-8px) rotate(-0.4deg);
-	}
-}
-
-@keyframes heroZoom {
-	0% {
-		transform: scale(1.02) translate3d(0, 0, 0);
-	}
-	100% {
-		transform: scale(1.08) translate3d(-1%, -1%, 0);
-	}
-}
-
-@keyframes chipFloat {
-	0%,
-	100% {
-		transform: translateY(0);
-	}
-	50% {
-		transform: translateY(-4px);
-	}
-}
-
-@keyframes pulseGlow {
-	0%,
-	100% {
-		opacity: 0.55;
-		transform: scale(1);
-	}
-	50% {
-		opacity: 1;
-		transform: scale(1.08);
-	}
 }
 
 .hero-link-row {
@@ -1800,31 +1830,43 @@ tbody tr:nth-child(even) td {
 		<div class="page-shell">
 			<div class="dashboard-layout">
 				<div class="sidebar">
-					<div class="sidebar-title">Connecteo</div>
-					<div class="sidebar-nav">
-						<button id="navFormulaireButton" class="sidebar-button">Formulaire</button>
-						<button id="navRechercheButton" class="sidebar-button is-active">Recherche</button>
-						<button id="navRajoutButton" class="sidebar-button">Rajouts</button>
-					</div>
-					<div class="sidebar-metric">
-						<span>Total</span>
-						<strong id="totalRows">0</strong>
-					</div>
-					<div class="sidebar-metric">
-						<span>Pas de planning</span>
-						<strong id="noPlanningCount">0</strong>
-					</div>
-					<div class="sidebar-metric">
-						<span>Pas de choix</span>
-						<strong id="noChoiceCount">0</strong>
-					</div>
-					<div class="sidebar-metric">
-						<span>Rajout simple</span>
-						<strong id="simpleRajoutCount">0</strong>
-					</div>
-					<div class="sidebar-metric">
-						<span>Nouveau collaborateur</span>
-						<strong id="newCollaboratorCount">0</strong>
+					<div class="sidebar-content">
+						<div class="sidebar-title">Connecteo</div>
+						<div class="sidebar-nav">
+							<button id="navFormulaireButton" class="sidebar-button" type="button" aria-label="Formulaire">
+								<span class="sidebar-button-icon" aria-hidden="true">🧾</span>
+								<span class="sidebar-button-label">Formulaire</span>
+							</button>
+							<button id="navRechercheButton" class="sidebar-button is-active" type="button" aria-label="Recherche">
+								<span class="sidebar-button-icon" aria-hidden="true">🔎</span>
+								<span class="sidebar-button-label">Recherche</span>
+							</button>
+							<button id="navRajoutButton" class="sidebar-button" type="button" aria-label="Rajouts">
+								<span class="sidebar-button-icon" aria-hidden="true">➕</span>
+								<span class="sidebar-button-label">Rajouts</span>
+							</button>
+						</div>
+						<div class="sidebar-metric">
+							<span>Total</span>
+							<strong id="totalRows">0</strong>
+						</div>
+						<div class="sidebar-metric">
+							<span>Pas de planning</span>
+							<strong id="noPlanningCount">0</strong>
+						</div>
+						<div class="sidebar-metric">
+							<span>Pas de choix</span>
+							<strong id="noChoiceCount">0</strong>
+						</div>
+						<div class="sidebar-metric">
+							<span>Rajout simple</span>
+							<strong id="simpleRajoutCount">0</strong>
+						</div>
+						<div class="sidebar-metric">
+							<span>Nouveau collaborateur</span>
+							<strong id="newCollaboratorCount">0</strong>
+						</div>
+						<button id="sidebarToggleButton" class="sidebar-toggle" type="button" aria-expanded="true" aria-label="Réduire le sidebar">◀</button>
 					</div>
 				</div>
 				<main class="content-stack">

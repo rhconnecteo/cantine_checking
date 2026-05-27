@@ -43,6 +43,7 @@ const state = {
 	heroSlideshow: null,
 	simpleRajoutCount: 0,
 	newCollaboratorCount: 0,
+	sidebarCollapsed: false,
 };
 
 const elements = {};
@@ -79,7 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.navFormulaireButton = document.getElementById('navFormulaireButton');
 	elements.navRechercheButton = document.getElementById('navRechercheButton');
 	elements.navRajoutButton = document.getElementById('navRajoutButton');
+	elements.sidebarToggleButton = document.getElementById('sidebarToggleButton');
+	elements.sidebar = document.querySelector('.sidebar');
+	elements.sidebarContent = document.querySelector('.sidebar-content');
 	elements.rajoutList = document.getElementById('rajoutList');
+
+	state.sidebarCollapsed = readSidebarCollapsedState();
+	applySidebarCollapsedState(state.sidebarCollapsed);
 
 		// Page-aware initialisation: only run features present on the current page
 		if (elements.rajoutDate) {
@@ -205,6 +212,11 @@ function bindEvents() {
 			}
 		});
 	}
+
+	if (elements.sidebarToggleButton) {
+		elements.sidebarToggleButton.addEventListener('click', toggleSidebarCollapsed);
+		elements.sidebarToggleButton.title = state.sidebarCollapsed ? 'Afficher le sidebar' : 'Réduire le sidebar';
+	}
 }
 
 function bindNavButton(button, sectionId) {
@@ -217,6 +229,37 @@ function bindNavButton(button, sectionId) {
 		setActiveNav(button);
 	});
 
+}
+
+function readSidebarCollapsedState() {
+	try {
+		return window.localStorage.getItem('cantine.sidebarCollapsed') === 'true';
+	} catch (error) {
+		return false;
+	}
+}
+
+function applySidebarCollapsedState(isCollapsed) {
+	state.sidebarCollapsed = Boolean(isCollapsed);
+	document.body.classList.toggle('sidebar-collapsed', state.sidebarCollapsed);
+	if (elements.sidebarToggleButton) {
+		elements.sidebarToggleButton.textContent = state.sidebarCollapsed ? '▶' : '◀';
+		elements.sidebarToggleButton.setAttribute('aria-expanded', String(!state.sidebarCollapsed));
+		elements.sidebarToggleButton.setAttribute('aria-label', state.sidebarCollapsed ? 'Afficher le sidebar' : 'Réduire le sidebar');
+		elements.sidebarToggleButton.title = state.sidebarCollapsed ? 'Afficher le sidebar' : 'Réduire le sidebar';
+	}
+	if (elements.sidebar) {
+		elements.sidebar.setAttribute('data-collapsed', String(state.sidebarCollapsed));
+	}
+	try {
+		window.localStorage.setItem('cantine.sidebarCollapsed', String(state.sidebarCollapsed));
+	} catch (error) {
+		// ignore storage failures
+	}
+}
+
+function toggleSidebarCollapsed() {
+	applySidebarCollapsedState(!state.sidebarCollapsed);
 }
 
 function showSection(pageId) {
@@ -1360,12 +1403,13 @@ function createSlideshow(containerId, slidesArray, intervalMs = 3600) {
 	if (!frame || !Array.isArray(slidesArray) || slidesArray.length === 0) return null;
 
 	frame.innerHTML = slidesArray
-		.map((slide, index) => `
+		.slice(0, 1)
+		.map((slide) => `
 			<img
-				class="hero-slide${index === 0 ? ' is-active' : ''}"
+				class="hero-slide is-active"
 				src="${escapeHtml(slide.src)}"
 				alt="${escapeHtml(slide.alt)}"
-				loading="${index === 0 ? 'eager' : 'lazy'}"
+				loading="eager"
 				decoding="async"
 			/>
 		`)
@@ -1378,55 +1422,19 @@ function createSlideshow(containerId, slidesArray, intervalMs = 3600) {
 		timer: null,
 		intervalMs,
 	};
-
-	slideshow.activateSlide = (nextIndex) => {
-		if (!slideshow.slides.length) return;
-		const normalizedIndex = ((nextIndex % slideshow.slides.length) + slideshow.slides.length) % slideshow.slides.length;
-		slideshow.index = normalizedIndex;
-		slideshow.slides.forEach((s, i) => s.classList.toggle('is-active', i === normalizedIndex));
-	};
-
-	slideshow.advance = () => slideshow.activateSlide(slideshow.index + 1);
-
-	frame.addEventListener('mouseenter', () => setHeroSlideshowPlaying(false));
-	frame.addEventListener('mouseleave', () => setHeroSlideshowPlaying(true));
-	frame.addEventListener('focusin', () => setHeroSlideshowPlaying(false));
-	frame.addEventListener('focusout', () => setHeroSlideshowPlaying(true));
-
-	slideshow.activateSlide(0);
 	return slideshow;
 }
 
 function initializeHeroSlideshow() {
-	// create three independent slideshows
+	// create static hero frames with one image each to avoid continuous animation cost
 	state.heroSlides = {};
 	state.heroSlides.left = createSlideshow('slideshow-left', HERO_SLIDES_LEFT, 3800);
 	state.heroSlides.center = createSlideshow('slideshow-center', HERO_SLIDES_RIZ, 4200);
 	state.heroSlides.right = createSlideshow('slideshow-right', HERO_SLIDES_DESSERTS, 3600);
-
-	// start playing by default
-	setHeroSlideshowPlaying(true);
 }
 
 function setHeroSlideshowPlaying(shouldPlay) {
-	const slidesObj = state.heroSlides || {};
-	Object.keys(slidesObj).forEach((key) => {
-		const slideshow = slidesObj[key];
-		if (!slideshow || !slideshow.slides || slideshow.slides.length < 2) return;
-
-		if (!shouldPlay) {
-			if (slideshow.timer) {
-				clearInterval(slideshow.timer);
-				slideshow.timer = null;
-			}
-			return;
-		}
-
-		if (slideshow.timer) return;
-		slideshow.timer = window.setInterval(() => {
-			slideshow.advance();
-		}, slideshow.intervalMs || 3600);
-	});
+	return shouldPlay;
 }
 
 function resetSearch() {

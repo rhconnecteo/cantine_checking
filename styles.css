@@ -157,7 +157,6 @@ body {
 
 .stat-label {
 	display: block;
-	margin-bottom: 10px;
 	color: var(--muted);
 	font-size: 0.84rem;
 	font-weight: 600;
