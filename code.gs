@@ -28,6 +28,7 @@ function doGet(e) {
 	const wantsJson = String(params.format || '').toLowerCase() === 'json';
 	const callback = String(params.callback || '').trim();
 	const action = String(params.action || '').trim();
+	const includeImages = String(params.includeImages || '').toLowerCase() === 'true';
 
 	// Fonction utilitaire pour créer une réponse avec headers CORS
 	function createResponse(data, isJsonp = false, callbackName = '') {
@@ -90,7 +91,7 @@ function doGet(e) {
 	// Retour des données JSON
 	if (wantsJson || callback) {
 		try {
-			const payload = getDashboardData();
+			const payload = getDashboardData(includeImages);
 			return createResponse(payload, !!callback, callback);
 		} catch (error) {
 			return createResponse({ 
@@ -125,7 +126,7 @@ function include(filename) {
 	return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-function getDashboardData() {
+function getDashboardData(includeImages) {
 	const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
 
 	if (!sheet) {
@@ -172,8 +173,7 @@ function getDashboardData() {
 				};
 				return accumulator;
 			}, {}),
-			imageBase64: '',
-			imageBase64: row[AVATAR_INDEX] || '',
+			imageBase64: includeImages ? (row[AVATAR_INDEX] || '') : '',
 			source: normalizeKey_(row[NEW_COLLABORATOR_INDEX]) === 'x' ? 'AJOUT_FORM' : (normalizeKey_(row[SIMPLE_RAJOUT_INDEX]) === 'x' ? 'RAJOUT_SIMPLE' : ''),
 			isSimpleRajout: normalizeKey_(row[SIMPLE_RAJOUT_INDEX]) === 'x',
 			isAddedCollaborator: normalizeKey_(row[NEW_COLLABORATOR_INDEX]) === 'x',

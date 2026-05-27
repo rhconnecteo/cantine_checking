@@ -939,6 +939,7 @@ button:hover {
 	border-radius: 16px;
 	border: 1px solid rgba(23, 33, 43, 0.1);
 	background: rgba(255, 255, 255, 0.78);
+	min-width: 0;
 }
 
 .formulaire-result.is-green {
@@ -961,6 +962,7 @@ button:hover {
 	grid-template-columns: 88px minmax(0, 1fr);
 	gap: 12px;
 	align-items: start;
+	min-width: 0;
 }
 
 .formulaire-result-avatar {
@@ -977,6 +979,7 @@ button:hover {
 .formulaire-result-main {
 	display: grid;
 	gap: 8px;
+	min-width: 0;
 }
 
 .formulaire-result-header {
@@ -984,17 +987,22 @@ button:hover {
 	justify-content: space-between;
 	align-items: flex-start;
 	gap: 10px;
+	min-width: 0;
 }
 
 .formulaire-result-name {
 	font-size: 1.02rem;
 	font-weight: 800;
+	min-width: 0;
+	overflow-wrap: break-word;
+	word-break: normal;
 }
 
 .formulaire-result-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 8px;
+	min-width: 0;
 }
 
 .formulaire-result-grid--planning {
@@ -1008,18 +1016,23 @@ button:hover {
 	border-radius: 10px;
 	background: rgba(255, 255, 255, 0.62);
 	border: 1px solid rgba(23, 33, 43, 0.05);
+	min-width: 0;
 }
 
 .formulaire-result-item span {
 	font-size: 0.72rem;
 	font-weight: 800;
 	color: var(--accent-strong);
+	min-width: 0;
 }
 
 .formulaire-result-item strong {
 	font-size: 0.9rem;
 	font-weight: 800;
 	color: var(--text);
+	min-width: 0;
+	overflow-wrap: break-word;
+	word-break: normal;
 }
 
 .formulaire-result-item--check {
@@ -1043,6 +1056,8 @@ button:hover {
 	border: 1px solid rgba(202, 138, 4, 0.26);
 	color: #854d0e;
 	width: fit-content;
+	max-width: 100%;
+	white-space: normal;
 }
 
 .table-wrap {
@@ -1437,6 +1452,45 @@ tbody tr:nth-child(even) td {
 
 	.hero-slide {
 		object-position: center right;
+	}
+
+	.formulaire-result {
+		padding: 12px;
+	}
+
+	.formulaire-result-layout--avatar {
+		grid-template-columns: 1fr;
+		gap: 10px;
+	}
+
+	.formulaire-result-avatar {
+		width: 72px;
+		height: 72px;
+	}
+
+	.formulaire-result-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.formulaire-result-grid,
+	.formulaire-result-grid--planning {
+		grid-template-columns: 1fr;
+	}
+
+	.formulaire-result-item--check {
+		grid-column: auto;
+	}
+
+	.formulaire-result-rajout-badge,
+	.formulaire-result-footnote.is-rajout {
+		white-space: normal;
+	}
+
+	.formulaire-result-name,
+	.formulaire-result-item strong {
+		overflow-wrap: break-word;
+		word-break: normal;
 	}
 
 	.hero-chip {

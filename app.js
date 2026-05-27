@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxPxbI37K7HHzOrZbCVUzjF-353QtR92fI6rWe_LnMJIYPLweK-_TUE89UUE2VeI8uq/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyx72QkPWAn7fGllil6vYLXkhLP4qxCERrYMWjHD4dZIL2UnHiyG3Rwq05Nj43x5sju/exec';
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
 	{ key: 'mardi', label: 'Mardi' },
@@ -788,7 +788,7 @@ async function loadData() {
     setStatus('Chargement des donnees...');
     
     try {
-		const payload = await loadJsonp(`${WEB_APP_URL}?format=json`, 15000);
+		const payload = await loadJsonp(`${WEB_APP_URL}?format=json&includeImages=false`, 25000);
         
         const normalized = normalizePayload(payload);
         state.rows = normalized.rows;
@@ -831,9 +831,11 @@ function loadJsonp(baseUrl, timeoutMs) {
 	return new Promise((resolve, reject) => {
 		const callbackName = `cantineJsonp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 		const separator = baseUrl.includes('?') ? '&' : '?';
-		const src = `${baseUrl}${separator}callback=${encodeURIComponent(callbackName)}`;
+		const cacheBuster = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+		const src = `${baseUrl}${separator}callback=${encodeURIComponent(callbackName)}&_=${encodeURIComponent(cacheBuster)}`;
 
 		let timer = null;
+		let retried = false;
 		const script = document.createElement('script');
 
 		function cleanup() {
@@ -853,6 +855,13 @@ function loadJsonp(baseUrl, timeoutMs) {
 
 		script.onerror = () => {
 			cleanup();
+			if (!retried) {
+				retried = true;
+				window.setTimeout(() => {
+					loadJsonp(baseUrl, timeoutMs).then(resolve).catch(reject);
+				}, 150);
+				return;
+			}
 			reject(new Error('Impossible de charger les donnees depuis Apps Script.'));
 		};
 
