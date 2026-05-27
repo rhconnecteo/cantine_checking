@@ -26,6 +26,7 @@ function doGet(e) {
 
 	const params = (e && e.parameter) || {};
 	const wantsJson = String(params.format || '').toLowerCase() === 'json';
+	const wantsBridge = String(params.format || '').toLowerCase() === 'bridge';
 	const callback = String(params.callback || '').trim();
 	const action = String(params.action || '').trim();
 	const includeImages = String(params.includeImages || '').toLowerCase() === 'true';
@@ -108,6 +109,25 @@ function doGet(e) {
 		}
 	}
 
+	if (wantsBridge) {
+		try {
+			const payload = getDashboardData(includeImages);
+			return createBridgeResponse(payload);
+		} catch (error) {
+			return createBridgeResponse({
+				error: error.toString(),
+				rows: [],
+				totalRows: 0,
+				noPlanningCount: 0,
+				noChoiceCount: 0,
+				simpleRajoutCount: 0,
+				newCollaboratorCount: 0,
+				rajoutCount: 0,
+				days: DAY_CONFIG.map(({ key, label }) => ({ key, label })),
+			});
+		}
+	}
+
 	// Interface HTML par défaut
 	return HtmlService.createHtmlOutputFromFile('index')
 		.setTitle('Cantine Connecteo')
@@ -119,6 +139,13 @@ function handleCorsPreflight() {
 	const output = ContentService.createTextOutput('');
 	output.setMimeType(ContentService.MimeType.TEXT);
 	return output;
+}
+
+function createBridgeResponse(data) {
+	const safeJson = JSON.stringify(data).replace(/</g, '\\u003c');
+	const html = `<!doctype html><html><head><meta charset="utf-8"></head><body><script>window.parent.postMessage({type:'cantine-bridge-data',payload:${safeJson}},'*');</script></body></html>`;
+	return HtmlService.createHtmlOutput(html)
+		.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 // ==================== FONCTIONS EXISTANTES (à conserver) ====================

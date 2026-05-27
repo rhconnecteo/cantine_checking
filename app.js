@@ -1,4 +1,4 @@
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyx72QkPWAn7fGllil6vYLXkhLP4qxCERrYMWjHD4dZIL2UnHiyG3Rwq05Nj43x5sju/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxD66znAFJRukZloI15T7nxjf3OetC6yBYE41qtXKzlu8943cw9tbH7wCYmtdg4SGGy/exec';
 const DAY_OPTIONS = [
 	{ key: 'lundi', label: 'Lundi' },
 	{ key: 'mardi', label: 'Mardi' },
@@ -813,6 +813,35 @@ async function loadData() {
         }
         setStatus('Pret');
     } catch (error) {
+		try {
+			const payload = await loadBridgeData(`${WEB_APP_URL}?format=bridge&includeImages=false`, 25000);
+			const normalized = normalizePayload(payload);
+			state.rows = normalized.rows;
+			state.days = normalized.days;
+			if (elements.totalRows) elements.totalRows.textContent = String(normalized.totalRows);
+			if (elements.noPlanningCount) elements.noPlanningCount.textContent = String(normalized.noPlanningCount);
+			if (elements.noChoiceCount) elements.noChoiceCount.textContent = String(normalized.noChoiceCount);
+			if (elements.simpleRajoutCount) elements.simpleRajoutCount.textContent = String(normalized.simpleRajoutCount);
+			if (elements.newCollaboratorCount) elements.newCollaboratorCount.textContent = String(normalized.newCollaboratorCount);
+
+			showIdleState();
+			if (document.body.classList.contains('page-rajout-active')) {
+				renderRajoutList();
+			} else if (document.getElementById('page-recherche')?.classList.contains('active')) {
+				if (state.currentSearchMatricule) {
+					runCurrentSearch();
+				} else {
+					showIdleState();
+				}
+			} else if (document.getElementById('page-formulaire')?.classList.contains('active')) {
+				renderCurrentFormulaireSearch();
+			}
+			setStatus('Pret');
+			return;
+		} catch (bridgeError) {
+			error = bridgeError;
+		}
+
         console.error('loadData error:', error);
         
         if (elements.searchResults) {
@@ -825,6 +854,54 @@ async function loadData() {
         if (elements.resultsHint) elements.resultsHint.textContent = 'Erreur de chargement.';
         setStatus('Erreur');
     }
+}
+
+function loadBridgeData(baseUrl, timeoutMs) {
+	return new Promise((resolve, reject) => {
+		const iframe = document.createElement('iframe');
+		const bridgeId = `cantineBridge_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+		const src = `${baseUrl}&bridgeId=${encodeURIComponent(bridgeId)}&_=${encodeURIComponent(Date.now())}`;
+		let timer = null;
+
+		function cleanup() {
+			if (timer) {
+				clearTimeout(timer);
+			}
+			window.removeEventListener('message', onMessage);
+			if (iframe.parentNode) {
+				iframe.parentNode.removeChild(iframe);
+			}
+		}
+
+		function onMessage(event) {
+			const allowedOrigin = /^https:\/\/(script\.google\.com|script\.googleusercontent\.com)$/;
+			if (!allowedOrigin.test(String(event.origin || ''))) {
+				return;
+			}
+
+			const data = event.data || {};
+			if (data.type !== 'cantine-bridge-data') {
+				return;
+			}
+
+			cleanup();
+			resolve(data.payload);
+		}
+
+		window.addEventListener('message', onMessage);
+		iframe.style.display = 'none';
+		iframe.src = src;
+		iframe.onerror = () => {
+			cleanup();
+			reject(new Error('Impossible de charger les donnees via le mode bridge.'));
+		};
+		document.body.appendChild(iframe);
+
+		timer = setTimeout(() => {
+			cleanup();
+			reject(new Error('Temps d\'attente depasse pendant le chargement des donnees.'));
+		}, timeoutMs || 15000);
+	});
 }
 
 function loadJsonp(baseUrl, timeoutMs) {
