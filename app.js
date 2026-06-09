@@ -358,9 +358,10 @@ function isDayVisibleForMode(dayPeriod, mode) {
 }
 
 function isDayReady(dayData) {
-	// A day is "ready" when it has a meaningful planning and a valid choice.
-	// Treat placeholders like "pas de choix", "aucun choix", "choix" and "absent" as missing.
-	return hasMeaningfulPlanning(dayData?.planning) && !isMissingPlaceholder(dayData?.choice, ['pas de choix', 'aucun choix', 'choix', 'absent']);
+	// Treat certain placeholder values (including 'absent') as "no choice" so
+	// the day is not considered ready when the choice is a placeholder.
+	const hasChoice = !isMissingPlaceholder(dayData?.choice, ['pas de choix', 'aucun choix', 'choix', 'absent']);
+	return hasMeaningfulPlanning(dayData?.planning) && Boolean(hasChoice);
 }
 
 function isDayChecked(dayData) {
@@ -429,7 +430,7 @@ function getFormulaireDisplayState(row, dayData, dayKey) {
 	const planningValue = String(dayData?.planning || '').trim();
 	const hasPlanning = hasMeaningfulPlanning(planningValue);
 	const isPlanningHour = isHourPlanningValue(planningValue);
-	// Consider explicit markers like "ABSENT" as missing choice
+	// Treat 'absent' like the existing placeholders so it behaves like "pas de choix"
 	const hasChoice = !isMissingPlaceholder(dayData?.choice, ['pas de choix', 'aucun choix', 'choix', 'absent']);
 	const isAdded = isCollaboratorAdded(row);
 	const isRajoutDay = Boolean(String(dayData?.rajout || '').trim()) || Boolean(row && row.rajouts && row.rajouts[String(dayKey || '')]);
@@ -1135,21 +1136,8 @@ function onRajoutSubmit(event) {
 }
 
 function renderWeekdayCell(label, value, fallback) {
-	// Show 'ABSENT' literally when the value is explicitly absent,
-	// otherwise show the raw value, and fall back to the provided fallback
-	// for other placeholder values (eg. 'pas de choix').
-	const raw = String(value || '').trim();
-	const normalized = normalizeText(raw);
-	let display;
-	if (normalized === 'absent') {
-		display = 'ABSENT';
-	} else if (isMissingPlaceholder(raw, ['pas de choix', 'aucun choix', 'choix', 'absent'])) {
-		display = fallback;
-	} else {
-		display = raw || fallback;
-	}
-
-	return `<div class="week-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(display)}</strong></div>`;
+	const text = String(value || '').trim() || fallback;
+	return `<div class="week-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(text)}</strong></div>`;
 }
 
 function renderRajoutDayOptions() {

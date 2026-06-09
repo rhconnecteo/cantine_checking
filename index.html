@@ -1956,10 +1956,7 @@ tbody tr:nth-child(even) td {
 							<span>Rajout simple</span>
 							<strong id="simpleRajoutCount">0</strong>
 						</div>
-						<div class="sidebar-metric">
-							<span>Nouveau collaborateur</span>
-							<strong id="newCollaboratorCount">0</strong>
-						</div>
+
 						<button id="sidebarToggleButton" class="sidebar-toggle" type="button" aria-expanded="true" aria-label="Réduire le sidebar">◀</button>
 					</div>
 				</div>
@@ -2018,61 +2015,7 @@ tbody tr:nth-child(even) td {
 						</form>
 						<div id="resultsHint" style="margin-top:4px;color:var(--muted)"></div>
 						<div id="searchResults" class="results-list empty-state" style="margin-top:12px">Lancez une recherche pour afficher les résultats du matricule.</div>
-
-					<!-- Restaurer panneau d'ajout -->
-					<div class="collaborator-panel">
-						<div class="panel-header">
-							<div>
-								<h3>Nouveau collaborateur</h3>
-								<p>Ajout manuel d’un collaborateur dans la base, avec planning et choix laissés vides au départ.</p>
-							</div>
-						</div>
-						<form id="collaboratorForm" class="search-grid collaborator-form">
-							<div class="field">
-								<span>Matricule</span>
-								<input id="collaboratorMatriculeInput" type="text" placeholder="Matricule du collaborateur" />
-							</div>
-							<div class="field">
-								<span>Nom et prénom</span>
-								<input id="collaboratorNameInput" type="text" placeholder="Nom complet" />
-							</div>
-							<div class="field rajout-days-block" style="grid-column:1/-1;">
-								<span>Jours de repas</span>
-								<input id="collaboratorDays" type="hidden" />
-								<div id="collaboratorDayButtons" class="rajout-day-group collaborator-day-group"></div>
-							</div>
-							<div class="actions">
-								<button type="submit" class="primary-button">Ajouter</button>
-							</div>
-						</form>
-						<div id="collaboratorStatus" class="form-status" style="margin-top:8px;color:var(--muted)"></div>
-					</div>
-					<div id="searchRajoutZone" class="search-rajout-zone">
-						<form id="rajoutForm" class="compact-rajout rajout-form-layout">
-							<div class="field rajout-matricule-block">
-								<span>Matricule sélectionné</span>
-								<div id="rajoutMatriculeDisplay" class="fixed-value">Aucun matricule sélectionné</div>
-							</div>
-
-							<div class="rajout-meta-row">
-								<div class="field rajout-date-block">
-									<span>Date</span>
-									<input id="rajoutDate" type="date" />
-								</div>
-								</br>
-								<div class="actions rajout-action-block">
-									<button type="submit" class="primary-button">Rajout</button>
-								</div>
-							</div>
-
-							<div class="field rajout-days-block">
-								<span>Jours</span>
-								<input id="rajoutJour" type="hidden" />
-								<div id="rajoutDayButtons" class="rajout-day-group"></div>
-							</div>
-						</form>
-					</div>
-
+				
 					</section>
                     
 					<section id="page-formulaire" class="panel app-card page-section">
