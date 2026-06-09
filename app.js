@@ -55,10 +55,18 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.noChoiceCount = document.getElementById('noChoiceCount');
 	elements.simpleRajoutCount = document.getElementById('simpleRajoutCount');
 	elements.newCollaboratorCount = document.getElementById('newCollaboratorCount');
-	// search form and input removed from UI
+	elements.searchForm = document.getElementById('searchForm');
+	elements.matriculeInput = document.getElementById('matriculeInput');
 	elements.formulaireSearchForm = document.getElementById('formulaireSearchForm');
 	elements.formulaireMatriculeInput = document.getElementById('formulaireMatriculeInput');
-	// collaborator and search-specific elements removed
+	elements.collaboratorForm = document.getElementById('collaboratorForm');
+	elements.collaboratorMatriculeInput = document.getElementById('collaboratorMatriculeInput');
+	elements.collaboratorNameInput = document.getElementById('collaboratorNameInput');
+	elements.collaboratorDayButtons = document.getElementById('collaboratorDayButtons');
+	elements.collaboratorDays = document.getElementById('collaboratorDays');
+	elements.collaboratorStatus = document.getElementById('collaboratorStatus');
+	elements.searchPeriodMode = document.getElementById('searchPeriodMode');
+	elements.resetButton = document.getElementById('resetButton');
 	elements.formulaireResetButton = document.getElementById('formulaireResetButton');
 	elements.rajoutForm = document.getElementById('rajoutForm');
 	elements.rajoutMatriculeDisplay = document.getElementById('rajoutMatriculeDisplay');
@@ -67,19 +75,34 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.rajoutDayButtons = document.getElementById('rajoutDayButtons');
 	elements.rajoutStatus = document.getElementById('rajoutStatus');
 	elements.rajoutSubmitButton = elements.rajoutForm ? elements.rajoutForm.querySelector('button[type="submit"]') : null;
+	elements.resultsHint = document.getElementById('resultsHint');
+	elements.searchResults = document.getElementById('searchResults');
 	elements.formulaireResults = document.getElementById('formulaireResults');
+	elements.searchRajoutZone = document.getElementById('searchRajoutZone');
+	elements.rajoutHeroZone = document.getElementById('rajoutHeroZone');
 	elements.navFormulaireButton = document.getElementById('navFormulaireButton');
+	elements.navRechercheButton = document.getElementById('navRechercheButton');
 	elements.navRajoutButton = document.getElementById('navRajoutButton');
+	elements.navExportButton = document.getElementById('navExportButton');
 	elements.sidebarToggleButton = document.getElementById('sidebarToggleButton');
 	elements.sidebar = document.querySelector('.sidebar');
 	elements.sidebarContent = document.querySelector('.sidebar-content');
 	elements.rajoutList = document.getElementById('rajoutList');
+	elements.exportDay = document.getElementById('exportDay');
+	elements.exportButton = document.getElementById('exportButton');
+	elements.exportStatus = document.getElementById('exportStatus');
 
 	state.sidebarCollapsed = readSidebarCollapsedState();
 	if (isMobileViewport()) {
 		state.sidebarCollapsed = false;
 	}
 	applySidebarCollapsedState(state.sidebarCollapsed);
+
+	// Restore UI state from previous session (search matricule, selected days)
+	loadUiState();
+	if (elements.exportDay && !elements.exportDay.value) {
+		elements.exportDay.value = getTodayDayKey();
+	}
 
 		// Page-aware initialisation: only run features present on the current page
 		if (elements.rajoutDate) {
@@ -95,10 +118,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		bindEvents();
 		adjustSidebarRajoutVisibility();
-		showSection('page-formulaire');
-		setActiveNav(elements.navFormulaireButton);
-		// ensure the rajout form visibility is set for formulaire by default
-		positionRajoutForm('page-formulaire');
+		showSection('page-recherche');
+		setActiveNav(elements.navRechercheButton);
+		// ensure the rajout form is positioned into the search sidebar by default
+		positionRajoutForm('page-recherche');
 		initializeHeroSlideshow();
 		loadData();
 });
@@ -117,15 +140,17 @@ function adjustRajoutSectionVisibility(pageId) {
 }
 
 function ensureSidebarRajoutContainer() {
-	// rajout form is embedded in the page-rajout now
-	if (!elements.rajoutForm) return null;
-	return elements.rajoutForm;
+	if (!elements.searchRajoutZone) return null;
+	return elements.searchRajoutZone;
 }
 
 function positionRajoutForm(pageId) {
 	if (!elements.rajoutForm) return;
-	// show the rajout form only on the rajout page
-	elements.rajoutForm.style.display = pageId === 'page-rajout' ? '' : 'none';
+	const isRajoutPage = pageId === 'page-recherche';
+	const sidebarContainer = ensureSidebarRajoutContainer();
+	if (sidebarContainer) {
+		sidebarContainer.style.display = isRajoutPage ? '' : 'none';
+	}
 }
 
 function setRajoutSubmittingState(isSubmitting) {
@@ -154,15 +179,29 @@ function resetRajoutFormState() {
 }
 
 function bindEvents() {
+	if (elements.searchForm) {
+		elements.searchForm.addEventListener('submit', onSearch);
+	}
+
 	if (elements.formulaireSearchForm) {
 		elements.formulaireSearchForm.addEventListener('submit', onFormulaireSearch);
+	}
+
+	if (elements.collaboratorForm) {
+		elements.collaboratorForm.addEventListener('submit', onCollaboratorSubmit);
+	}
+
+	if (elements.resetButton) {
+		elements.resetButton.addEventListener('click', resetSearch);
 	}
 
 	if (elements.formulaireResetButton) {
 		elements.formulaireResetButton.addEventListener('click', resetFormulaireSearch);
 	}
 
-	// search results element has been removed from the UI
+	if (elements.searchResults) {
+		elements.searchResults.addEventListener('click', onSearchResultsClick);
+	}
 
 	if (elements.formulaireResults) {
 		elements.formulaireResults.addEventListener('change', onFormulaireMealToggle);
@@ -174,18 +213,27 @@ function bindEvents() {
 	}
 
 	bindNavButton(elements.navFormulaireButton, 'page-formulaire');
+	bindNavButton(elements.navRechercheButton, 'page-recherche');
 	bindNavButton(elements.navRajoutButton, 'page-rajout');
 
-	if (elements.navRajoutButton) {
-		elements.navRajoutButton.addEventListener('click', (ev) => {
-			ev.preventDefault();
-			showSection('page-rajout');
-			setActiveNav(elements.navRajoutButton);
-			renderRajoutList();
+	if (elements.navExportButton) {
+		elements.navExportButton.addEventListener('click', () => {
+			showSection('page-export');
+			setActiveNav(elements.navExportButton);
 		});
 	}
 
-	// matricule input removed from the UI
+	if (elements.exportButton) {
+		elements.exportButton.addEventListener('click', onExportClick);
+	}
+
+	if (elements.matriculeInput) {
+		elements.matriculeInput.addEventListener('input', () => {
+			if (!elements.matriculeInput.value.trim()) {
+				showIdleState();
+			}
+		});
+	}
 
 	if (elements.sidebarToggleButton) {
 		elements.sidebarToggleButton.addEventListener('click', toggleSidebarCollapsed);
@@ -244,7 +292,7 @@ function isMobileViewport() {
 }
 
 function showSection(pageId) {
-	const pages = ['page-formulaire', 'page-rajout'];
+	const pages = ['page-formulaire', 'page-recherche', 'page-rajout', 'page-export'];
 	pages.forEach((id) => {
 		const el = document.getElementById(id);
 		if (!el) return;
@@ -260,6 +308,23 @@ function showSection(pageId) {
 		setHeroSlideshowPlaying(false);
 		renderRajoutList();
 		adjustSidebarRajoutVisibility('page-rajout');
+	} else if (pageId === 'page-export') {
+		document.body.classList.remove('page-rajout-active');
+		adjustRajoutSectionVisibility('page-export');
+		positionRajoutForm('page-export');
+		setHeroSlideshowPlaying(false);
+		adjustSidebarRajoutVisibility('page-export');
+	} else if (pageId === 'page-recherche') {
+		document.body.classList.remove('page-rajout-active');
+		adjustRajoutSectionVisibility('page-recherche');
+		positionRajoutForm('page-recherche');
+		adjustSidebarRajoutVisibility('page-recherche');
+		setHeroSlideshowPlaying(true);
+		if (state.currentSearchMatricule) {
+			runCurrentSearch();
+		} else {
+			showIdleState();
+		}
 	} else {
 		document.body.classList.remove('page-rajout-active');
 		adjustRajoutSectionVisibility('page-formulaire');
@@ -293,7 +358,7 @@ function isDayVisibleForMode(dayPeriod, mode) {
 }
 
 function isDayReady(dayData) {
-	return Boolean(String(dayData?.planning || '').trim()) && Boolean(String(dayData?.choice || '').trim());
+	return hasMeaningfulPlanning(dayData?.planning) && Boolean(String(dayData?.choice || '').trim());
 }
 
 function isDayChecked(dayData) {
@@ -301,7 +366,7 @@ function isDayChecked(dayData) {
 }
 
 function setDayCheckedOptimistic(matricule, dayKey, checked) {
-	const targetRow = (state.rows || []).find((row) => normalizeText(row.matricule) === normalizeText(matricule));
+	const targetRow = (state.rows || []).find((row) => normalizeText(row.matricule).includes(normalizeText(matricule)));
 	if (!targetRow || !targetRow.days || !targetRow.days[dayKey]) {
 		return null;
 	}
@@ -319,6 +384,25 @@ function isCollaboratorAdded(row) {
 function isMissingPlaceholder(value, placeholders) {
 	const normalized = normalizeText(value);
 	return !normalized || placeholders.includes(normalized);
+}
+
+function isNonHourPlanningLabel(value) {
+	const normalized = String(value || '').trim();
+	const normalizedLower = normalized.toLowerCase();
+	if (!normalized || normalizedLower === 'time' || normalizedLower === 'off') {
+		return true;
+	}
+	if (/[a-zà-ÿ]/i.test(normalized) && !isHourPlanningValue(normalized)) {
+		return true;
+	}
+	return false;
+}
+
+function hasMeaningfulPlanning(value) {
+	const normalized = String(value || '').trim();
+	if (!normalized) return false;
+	if (isNonHourPlanningLabel(normalized)) return false;
+	return !isMissingPlaceholder(normalized, ['pas de planning', 'aucun planning', 'planning']);
 }
 
 function isHourPlanningValue(value) {
@@ -341,7 +425,7 @@ function getCollaboratorImageSrc(row) {
 
 function getFormulaireDisplayState(row, dayData, dayKey) {
 	const planningValue = String(dayData?.planning || '').trim();
-	const hasPlanning = !isMissingPlaceholder(planningValue, ['pas de planning', 'aucun planning', 'planning']);
+	const hasPlanning = hasMeaningfulPlanning(planningValue);
 	const isPlanningHour = isHourPlanningValue(planningValue);
 	const hasChoice = !isMissingPlaceholder(dayData?.choice, ['pas de choix', 'aucun choix', 'choix']);
 	const isAdded = isCollaboratorAdded(row);
@@ -388,10 +472,6 @@ function getFormulaireDisplayState(row, dayData, dayKey) {
 }
 
 function runCurrentSearch() {
-	if (!elements.matriculeInput || !elements.searchResults) {
-		console.warn('runCurrentSearch: search UI not present.');
-		return;
-	}
 	const searchValue = String(elements.matriculeInput && elements.matriculeInput.value || '').trim();
 	const matricule = normalizeText(searchValue);
 	const todayKey = getTodayDayKey();
@@ -401,7 +481,7 @@ function runCurrentSearch() {
 		return;
 	}
 
-	const matches = state.rows.filter((row) => normalizeText(row.matricule) === matricule);
+	const matches = state.rows.filter((row) => normalizeText(row.matricule).includes(matricule) || normalizeText(row.nomPrenom).includes(matricule));
 	state.lastResults = matches;
 	setRajoutMatricule(matricule);
 
@@ -413,12 +493,12 @@ function runCurrentSearch() {
 	}
 
 	if (!matches.length) {
-		if (elements.resultsHint) elements.resultsHint.textContent = 'Aucun matricule correspondant.';
+		elements.resultsHint.textContent = 'Aucun matricule correspondant.';
 		renderResults([], `Aucun resultat pour "${escapeHtml(searchValue)}".`, true, 'all', elements.searchResults);
 		return;
 	}
 
-	if (elements.resultsHint) elements.resultsHint.textContent = `Recherche pour ${searchValue || matricule.toUpperCase()} - ${getDayLabel(todayKey)}.`;
+	elements.resultsHint.textContent = `Recherche pour ${searchValue || matricule.toUpperCase()} - ${getDayLabel(todayKey)}.`;
 	renderResults(matches, '', false, 'all', elements.searchResults);
 	scrollToSection('topSection');
 }
@@ -427,6 +507,8 @@ function onFormulaireSearch(event) {
 	event.preventDefault();
 	const searchValue = String(elements.formulaireMatriculeInput && elements.formulaireMatriculeInput.value || '').trim();
 	state.formulaireSearchMatricule = normalizeText(searchValue);
+	// persist formulaire matricule
+	saveUiState();
 	if (!state.formulaireSearchMatricule) {
 		showFormulaireIdleState();
 		return;
@@ -657,7 +739,7 @@ function onSearchResultsClick(event) {
 }
 
 function setActiveNav(button) {
-	const buttons = [elements.navFormulaireButton, elements.navRajoutButton].filter(Boolean);
+	const buttons = [elements.navFormulaireButton, elements.navRechercheButton, elements.navRajoutButton].filter(Boolean);
 	buttons.forEach((b) => {
 		if (b === button) b.classList.add('is-active');
 		else b.classList.remove('is-active');
@@ -704,16 +786,16 @@ function renderRajoutSectionHtml(sectionTitle, rows, sectionKey, abbrev) {
 	const rowsHtml = rows
 		.map((row) => {
 			const cells = days.map((d) => (row.rajouts && row.rajouts[d] ? '<td class="rajout-x">X</td>' : '<td></td>')).join('');
-			const badgeLabel = 'Collab';
+			const badgeLabel = 'Collaborateur';
 			return `
 				<article class="result-card">
-					<div class="rajout-card-row" style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:6px;width:100%;min-width:0;">
-						<div class="rajout-card-info" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-width:0;max-width:120px;flex:0 0 120px;">
+					<div class="rajout-card-row" style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:10px;width:100%;min-width:0;">
+						<div class="rajout-card-info" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-width:0;max-width:180px;flex:0 0 180px;overflow:hidden;">
 							<div class="rajout-type-badge is-collaborator-column" style="background:linear-gradient(135deg,#102a43,#1d4e89);color:#fff;border:1px solid rgba(16,42,67,0.2);box-shadow:0 8px 18px rgba(16,42,67,0.14);">${escapeHtml(badgeLabel)}</div>
 							<div class="rajout-card-name">${escapeHtml(row.nomPrenom)}</div>
 							<div class="rajout-card-meta">${escapeHtml(row.matricule)}</div>
 						</div>
-						<div class="rajout-card-table" style="flex:1 1 auto;min-width:0;margin-left:0;white-space:nowrap;overflow:hidden;max-width:100%;">
+						<div class="rajout-card-table" style="flex:1 1 0;min-width:0;margin-left:0;white-space:nowrap;overflow:hidden;max-width:100%;">
 							<table class="rajout-table" style="border-collapse:collapse;white-space:nowrap;width:100%;table-layout:fixed;">
 								<thead>
 									<tr>
@@ -812,6 +894,9 @@ function setRajoutMatricule(matricule) {
 			? state.currentSearchMatricule.toUpperCase()
 			: 'Aucun matricule sélectionné';
 	}
+
+	// persist current matricule search
+	saveUiState();
 }
 
 async function loadData() {
@@ -829,12 +914,18 @@ async function loadData() {
 		if (elements.simpleRajoutCount) elements.simpleRajoutCount.textContent = String(normalized.simpleRajoutCount);
 		if (elements.newCollaboratorCount) elements.newCollaboratorCount.textContent = String(normalized.newCollaboratorCount);
         
-		showIdleState();
+        showIdleState();
 		if (document.body.classList.contains('page-rajout-active')) {
-			renderRajoutList();
+            renderRajoutList();
+		} else if (document.getElementById('page-recherche')?.classList.contains('active')) {
+			if (state.currentSearchMatricule) {
+				runCurrentSearch();
+			} else {
+				showIdleState();
+			}
 		} else if (document.getElementById('page-formulaire')?.classList.contains('active')) {
 			renderCurrentFormulaireSearch();
-		}
+        }
         setStatus('Pret');
     } catch (error) {
 		try {
@@ -851,6 +942,12 @@ async function loadData() {
 			showIdleState();
 			if (document.body.classList.contains('page-rajout-active')) {
 				renderRajoutList();
+			} else if (document.getElementById('page-recherche')?.classList.contains('active')) {
+				if (state.currentSearchMatricule) {
+					runCurrentSearch();
+				} else {
+					showIdleState();
+				}
 			} else if (document.getElementById('page-formulaire')?.classList.contains('active')) {
 				renderCurrentFormulaireSearch();
 			}
@@ -1013,9 +1110,14 @@ function onRajoutSubmit(event) {
 			// Refresh data from server so the new/updated rajout is reflected in the UI
 			loadData()
 				.then(() => {
-							showSection('page-rajout');
-							renderRajoutList();
-							resetRajoutFormState();
+					showSection('page-recherche');
+					if (document.body.classList.contains('page-rajout-active')) {
+						renderRajoutList();
+					}
+					if (submittedMatricule) {
+						runCurrentSearch();
+					}
+					resetRajoutFormState();
 				})
 				.catch((err) => {
 					// ignore: keep the rajout status already set, but log for debugging
@@ -1069,6 +1171,9 @@ function setRajoutDays(dayKeys) {
 		const isSelected = state.selectedRajoutDays.includes(button.getAttribute('data-day'));
 		button.classList.toggle('is-selected', isSelected);
 	});
+
+	// persist rajout days
+	saveUiState();
 }
 
 function setCollaboratorDays(dayKeys) {
@@ -1080,8 +1185,44 @@ function setCollaboratorDays(dayKeys) {
 		const isSelected = state.selectedCollaboratorDays.includes(button.getAttribute('data-day'));
 		button.classList.toggle('is-selected', isSelected);
 	});
+
+	// persist collaborator days
+	saveUiState();
 }
 
+// Persist simple UI state so searches and selections survive a page reload
+function saveUiState() {
+	try {
+		window.localStorage.setItem('cantine.lastSearchMatricule', String(state.currentSearchMatricule || ''));
+		window.localStorage.setItem('cantine.rajoutDays', JSON.stringify(Array.isArray(state.selectedRajoutDays) ? state.selectedRajoutDays : []));
+		window.localStorage.setItem('cantine.collaboratorDays', JSON.stringify(Array.isArray(state.selectedCollaboratorDays) ? state.selectedCollaboratorDays : []));
+		window.localStorage.setItem('cantine.formulaireMatricule', String(state.formulaireSearchMatricule || ''));
+	} catch (e) {
+		// ignore storage failures
+	}
+}
+
+function loadUiState() {
+	try {
+		const last = window.localStorage.getItem('cantine.lastSearchMatricule') || '';
+		if (last && elements.matriculeInput) {
+			elements.matriculeInput.value = last;
+			state.currentSearchMatricule = last;
+			// Do not automatically run the search here; let loadData/runCurrentSearch handle it after data is fetched
+		}
+		const rajoutDays = JSON.parse(window.localStorage.getItem('cantine.rajoutDays') || '[]');
+		if (Array.isArray(rajoutDays) && rajoutDays.length) setRajoutDays(rajoutDays);
+		const collDays = JSON.parse(window.localStorage.getItem('cantine.collaboratorDays') || '[]');
+		if (Array.isArray(collDays) && collDays.length) setCollaboratorDays(collDays);
+		const f = window.localStorage.getItem('cantine.formulaireMatricule') || '';
+		if (f && elements.formulaireMatriculeInput) {
+			elements.formulaireMatriculeInput.value = f;
+			state.formulaireSearchMatricule = f;
+		}
+	} catch (e) {
+		// ignore
+	}
+}
 function toggleCollaboratorDay(dayKey) {
 	if (!dayKey) return;
 	const current = Array.isArray(state.selectedCollaboratorDays) ? [...state.selectedCollaboratorDays] : [];
@@ -1182,7 +1323,7 @@ function computeSummary(rows) {
 	let newCollaboratorCount = 0;
 
 	rows.forEach((row) => {
-		const hasPlanning = DAY_OPTIONS.some((day) => String(row.days?.[day.key]?.planning || '').trim() !== '');
+		const hasPlanning = DAY_OPTIONS.some((day) => hasMeaningfulPlanning(row.days?.[day.key]?.planning));
 		const hasChoice = DAY_OPTIONS.some((day) => String(row.days?.[day.key]?.choice || '').trim() !== '');
 		const isSimpleRajout = Boolean(row.isSimpleRajout) || normalizeText(row.simpleRajout) === 'x';
 		const isNewCollaborator = Boolean(row.isAddedCollaborator) || normalizeText(row.newCollaborator) === 'x';
@@ -1233,10 +1374,14 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 			const rajoutDays = Object.keys(row.rajouts || {});
 			const dayItems = DAY_OPTIONS;
 			const rowHasRajout = isCollaboratorAdded(row) || Object.values(row.days || {}).some((day) => String(day?.rajout || '').trim());
-			const allVisibleReady = dayItems.length > 0 && dayItems.every((day) => isDayReady(row.days?.[day.key]));
+			const allVisibleReady = dayItems.length > 0 && dayItems.every((day) => {
+				const dayData = row.days?.[day.key] || {};
+				const dayIsRajout = Boolean(String(dayData?.rajout || '').trim()) || rajoutDays.includes(day.key);
+				return isDayReady(dayData) || dayIsRajout;
+			});
 			const checkedCount = dayItems.filter((day) => isDayChecked(row.days?.[day.key])).length;
 			const stateClass = allVisibleReady ? 'is-ok' : 'is-alert';
-			const stateLabel = rowHasRajout ? 'Rajouté' : (allVisibleReady ? 'Dossier pret' : 'Dossier incomplet');
+			const stateLabel = rowHasRajout ? 'Rajouté' : (allVisibleReady ? '-' : '-');
 			return `
 				<article class="result-card result-card--search ${stateClass}">
 					<div class="result-topline result-side">
@@ -1261,9 +1406,9 @@ function renderResults(rows, emptyMessage, isEmpty, mode, targetElement) {
 								<div class="week-column ${dayIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing')} ${checked ? 'is-checked' : ''}">
 									<h4>${escapeHtml(isCompact ? (abbrev[day.key] || day.label) : day.label)}</h4>
 									${renderWeekdayCell('Planning', dayData.planning, 'Pas de planning')}
-									${renderWeekdayCell('Période', dayData.period, 'Jour / Nuit')}
+									${renderWeekdayCell('Shift', dayData.period, 'Jour / Nuit')}
 									${renderWeekdayCell('Choix', dayData.choice, 'Pas de choix')}
-									<div class="day-status ${(dayIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing'))} ${checked ? 'is-checked' : ''}">${checked ? 'Repas pris' : (dayIsRajout ? 'Rajouté' : (ready ? 'Compatible' : 'Incomplet'))}</div>
+									<div class="day-status ${(dayIsRajout ? 'is-rajout' : (ready ? 'is-ready' : 'is-missing'))} ${checked ? 'is-checked' : ''}">${checked ? 'Repas pris' : (dayIsRajout ? 'Rajouté' : (ready ? 'choix complet' : 'Incomplet'))}</div>
 								</div>
 							`;
 						}).join('')}
@@ -1341,12 +1486,12 @@ function renderFormulaireResults(rows, emptyMessage, isEmpty, dayKey) {
 									<strong>${escapeHtml(row.matricule)}</strong>
 								</div>
 								<div class="formulaire-result-item">
-									<span>Période :</span>
+									<span>Shift :</span>
 									<strong>${escapeHtml(dayData.period || 'Jour / Nuit')}</strong>
 								</div>
 								<div class="formulaire-result-item">
 									<span>Planning :</span>
-									<strong>${escapeHtml(dayData.planning || 'Pas de planning')}</strong>
+									<strong>${escapeHtml(isNonHourPlanningLabel(dayData.planning) ? 'Pas de planning' : (String(dayData.planning || '').trim() || 'Pas de planning'))}</strong>
 								</div>
 								<div class="formulaire-result-item">
 									<span>Choix :</span>
@@ -1376,7 +1521,7 @@ function renderCurrentFormulaireSearch() {
 		return;
 	}
 
-	const matches = state.rows.filter((row) => normalizeText(row.matricule) === normalizeText(matricule));
+	const matches = state.rows.filter((row) => normalizeText(row.matricule).includes(normalizeText(matricule)) || normalizeText(row.nomPrenom).includes(normalizeText(matricule)));
 	if (!matches.length) {
 		renderFormulaireResults([], `Aucun resultat pour "${escapeHtml(matricule)}".`, true, getTodayDayKey());
 		return;
@@ -1390,12 +1535,14 @@ function resetFormulaireSearch() {
 	if (elements.formulaireMatriculeInput) {
 		elements.formulaireMatriculeInput.value = '';
 	}
+	// clear persisted formulaire matricule
+	try { window.localStorage.removeItem('cantine.formulaireMatricule'); } catch (e) {}
 	showFormulaireIdleState();
 }
 
 function renderMealAction(row, dayKey, dayData, isChecked) {
 	const addedCollaborator = isCollaboratorAdded(row);
-	const hasPlanning = Boolean(dayData && String(dayData.planning || '').trim());
+	const hasPlanning = Boolean(dayData && hasMeaningfulPlanning(dayData.planning));
 	const hasChoice = Boolean(dayData && String(dayData.choice || '').trim());
 	if (!hasPlanning && !hasChoice && !addedCollaborator) {
 		return '<div class="day-action day-action--blocked">Planning ou choix manquant</div>';
@@ -1465,6 +1612,11 @@ function resetSearch() {
 	elements.matriculeInput.value = '';
 	setRajoutMatricule('');
 	setRajoutDays([]);
+	// clear persisted search state
+	try {
+		window.localStorage.removeItem('cantine.lastSearchMatricule');
+		window.localStorage.removeItem('cantine.rajoutDays');
+	} catch (e) {}
 	showIdleState();
 	elements.resultsHint.textContent = 'Aucun filtre applique.';
 	if (elements.searchResults) {
@@ -1506,4 +1658,84 @@ function escapeHtml(value) {
 		.replace(/>/g, '&gt;')
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&#39;');
+}
+
+function onExportClick() {
+	const selectedDay = elements.exportDay ? elements.exportDay.value : 'all';
+	const exportAll = selectedDay === 'all';
+
+	if (!selectedDay) {
+		if (elements.exportStatus) {
+			elements.exportStatus.textContent = 'Sélectionnez un jour pour l’export.';
+		}
+		return;
+	}
+
+	try {
+		if (typeof window.XLSX === 'undefined') {
+			throw new Error('La bibliothèque XLSX n’est pas chargée. Vérifiez la source du script.');
+		}
+		const data = generateExportData(selectedDay);
+		const suffix = exportAll ? 'toutes-donnees' : selectedDay;
+		const fileName = `cantine-export-${suffix}.xlsx`;
+		exportToXLSX(data, fileName);
+		if (elements.exportStatus) {
+			elements.exportStatus.textContent = 'Fichier exporté avec succès.';
+		}
+	} catch (error) {
+		if (elements.exportStatus) {
+			elements.exportStatus.textContent = `Erreur lors de l'export: ${error.message}`;
+		}
+	}
+}
+
+function generateExportData(selectedDay) {
+	const rows = [['Matricule', 'Nom et prénom', 'Choix', 'Checking']];
+	
+	if (!Array.isArray(state.rows)) {
+		return rows;
+	}
+
+	state.rows.forEach((row) => {
+		DAY_OPTIONS.forEach((dayOption) => {
+			if (selectedDay !== 'all' && dayOption.key !== selectedDay) {
+				return;
+			}
+
+			const dayData = row.days?.[dayOption.key] || {};
+			const rawRajout = String(dayData.rajout || '').trim();
+			const isRajout = rawRajout !== '';
+			const choice = isRajout ? 'rajout' : String(dayData.choice || '').trim();
+			const checking = normalizeText(dayData.checking) === 'x' ? 'ok' : 'no';
+
+			rows.push([
+				escapeHtml(row.matricule),
+				escapeHtml(row.nomPrenom),
+				escapeHtml(choice),
+				escapeHtml(checking)
+			]);
+		});
+	});
+
+	return rows;
+}
+
+function getDayIndexForWeek(dayKey) {
+	const dayMap = {
+		dimanche: 0,
+		lundi: 1,
+		mardi: 2,
+		mercredi: 3,
+		jeudi: 4,
+		vendredi: 5,
+		samedi: 6
+	};
+	return dayMap[dayKey] || 0;
+}
+
+function exportToXLSX(data, filename) {
+	const ws = XLSX.utils.aoa_to_sheet(data);
+	const wb = XLSX.utils.book_new();
+	XLSX.utils.book_append_sheet(wb, ws, 'Données');
+	XLSX.writeFile(wb, filename);
 }

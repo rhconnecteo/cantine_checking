@@ -1592,11 +1592,19 @@ body.page-rajout-active .rajout-list-only .result-card {
 body.page-rajout-active .rajout-card-name {
 	font-size: 0.82rem;
 	font-weight: 800;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
 }
 
 body.page-rajout-active .rajout-card-meta {
 	font-size: 0.64rem;
 	color: var(--muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
 }
 
 body.page-rajout-active .rajout-table th,
@@ -1644,4 +1652,36 @@ body.page-rajout-active .result-card {
 
 .page-section.active {
 	display: block;
+}
+
+@media (max-width: 420px) {
+	.rajout-type-badge.is-collaborator-column {
+		/* Scale and allow wrapping so full label is visible on narrow screens */
+		font-size: clamp(0.42rem, 3.2vw, 0.72rem);
+		padding: 2px 6px;
+		/* allow the badge to wrap to multiple lines if needed */
+		white-space: normal;
+		word-break: break-word;
+		overflow: visible;
+		text-overflow: clip;
+		display: inline-block;
+		line-height: 1.05;
+		text-transform: none; /* avoid wide uppercase glyphs */
+		letter-spacing: 0; /* tighten spacing to fit more characters */
+		font-weight: 700; /* keep emphasis but reduce weight from heavier settings */
+	}
+
+	/* Allow the identity column to show overflow (badge) instead of clipping */
+	body.page-rajout-active .rajout-card-info {
+		overflow: visible;
+	}
+
+	/* Give badge more space while preserving layout */
+	body.page-rajout-active .rajout-card-row {
+		grid-template-columns: minmax(130px, 160px) minmax(0, 1fr);
+	}
+
+	body.page-rajout-active .rajout-card-name {
+		font-size: 0.72rem;
+	}
 }

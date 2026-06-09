@@ -1923,13 +1923,17 @@ tbody tr:nth-child(even) td {
 					<div class="sidebar-content">
 						<div class="sidebar-title">Connecteo</div>
 						<div class="sidebar-nav">
-							<button id="navFormulaireButton" class="sidebar-button is-active" type="button" aria-label="Formulaire">
+							<button id="navFormulaireButton" class="sidebar-button" type="button" aria-label="Formulaire">
 								<span class="sidebar-button-icon" aria-hidden="true">🧾</span>
 								<span class="sidebar-button-label">Formulaire</span>
 							</button>
-							<button id="navRajoutButton" class="sidebar-button" type="button" aria-label="Rajouts">
-								<span class="sidebar-button-icon" aria-hidden="true">➕</span>
-								<span class="sidebar-button-label">Rajouts</span>
+							<button id="navRechercheButton" class="sidebar-button is-active" type="button" aria-label="Recherche">
+								<span class="sidebar-button-icon" aria-hidden="true">🔎</span>
+								<span class="sidebar-button-label">Recherche</span>
+							</button>
+							<button id="navExportButton" class="sidebar-button" type="button" aria-label="Exporter">
+								<span class="sidebar-button-icon" aria-hidden="true">💾</span>
+								<span class="sidebar-button-label">Exporter</span>
 							</button>
 						</div>
 						<div class="sidebar-metric">
@@ -1943,14 +1947,6 @@ tbody tr:nth-child(even) td {
 						<div class="sidebar-metric">
 							<span>Pas de choix</span>
 							<strong id="noChoiceCount">0</strong>
-						</div>
-						<div class="sidebar-metric">
-							<span>Rajout simple</span>
-							<strong id="simpleRajoutCount">0</strong>
-						</div>
-						<div class="sidebar-metric">
-							<span>Nouveau collaborateur</span>
-							<strong id="newCollaboratorCount">0</strong>
 						</div>
 						<button id="sidebarToggleButton" class="sidebar-toggle" type="button" aria-expanded="true" aria-label="Réduire le sidebar">◀</button>
 					</div>
@@ -1991,7 +1987,27 @@ tbody tr:nth-child(even) td {
 						</div>
 					</section>
 
-                    
+					<section id="page-recherche" class="panel app-card page-section">
+						<div class="panel-header">
+							<div>
+								<h2>Recherche générale</h2>
+								<p>Recherche par matricule, affichage des résultats, puis formulaire de rajout juste en dessous.</p>
+							</div>
+						</div>
+						<form id="searchForm" class="search-grid">
+							<div class="field">
+								<span>Matricule</span>
+								<input id="matriculeInput" type="text" placeholder="Entrez le matricule" />
+							</div>
+							<div class="actions">
+								<button type="submit" class="primary-button">Rechercher</button>
+								<button id="resetButton" type="button" class="secondary-button">Réinitialiser</button>
+							</div>
+						</form>
+						<div id="resultsHint" style="margin-top:4px;color:var(--muted)"></div>
+						<div id="searchResults" class="results-list empty-state" style="margin-top:12px">Lancez une recherche pour afficher les résultats du matricule.</div>
+
+					</section>
                     
 					<section id="page-formulaire" class="panel app-card page-section">
 						<div class="panel-header">
@@ -2014,36 +2030,42 @@ tbody tr:nth-child(even) td {
 					</section>
 
 					<section id="page-rajout" class="panel app-card rajout-panel page-section">
-						<form id="rajoutForm" class="compact-rajout rajout-form-layout" style="margin-bottom:12px">
-							<div class="field rajout-matricule-block">
-								<span>Matricule sélectionné</span>
-								<div id="rajoutMatriculeDisplay" class="fixed-value">Aucun matricule sélectionné</div>
-							</div>
-
-							<div class="rajout-meta-row">
-								<div class="field rajout-date-block">
-									<span>Date</span>
-									<input id="rajoutDate" type="date" />
-								</div>
-								</br>
-								<div class="actions rajout-action-block">
-									<button type="submit" class="primary-button">Rajout</button>
-								</div>
-							</div>
-
-							<div class="field rajout-days-block">
-								<span>Jours</span>
-								<input id="rajoutJour" type="hidden" />
-								<div id="rajoutDayButtons" class="rajout-day-group"></div>
-							</div>
-						</form>
 						<div id="rajoutStatus" style="margin-top:8px;color:var(--muted)"></div>
 						<div id="rajoutList" class="results-list rajout-list-only" style="margin-top:12px"></div>
+					</section>
+
+					<section id="page-export" class="panel app-card page-section">
+						<div class="panel-header">
+							<div>
+								<h2>Exporter les données</h2>
+								<p>Choisissez un jour de la semaine pour exporter les données correspondantes.</p>
+							</div>
+						</div>
+						<form id="exportForm" class="search-grid">
+							<div class="field">
+								<span>Jour</span>
+								<select id="exportDay">
+									<option value="all">Tous les jours</option>
+									<option value="lundi">Lundi</option>
+									<option value="mardi">Mardi</option>
+									<option value="mercredi">Mercredi</option>
+									<option value="jeudi">Jeudi</option>
+									<option value="vendredi">Vendredi</option>
+									<option value="samedi">Samedi</option>
+									<option value="dimanche">Dimanche</option>
+								</select>
+							</div>
+							<div class="actions">
+								<button id="exportButton" type="button" class="primary-button">Télécharger XLSX</button>
+							</div>
+						</form>
+						<div id="exportStatus" style="margin-top:8px;color:var(--muted)"></div>
 					</section>
 				</main>
 			</div>
 		</div>
 
+		<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 		<script src="./app.js"></script>
 	</body>
 </html>
