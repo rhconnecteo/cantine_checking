@@ -1,2080 +1,389 @@
 <!DOCTYPE html>
 <html lang="fr">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" type="image/jpg" href="restau.jpg" />
-		<title>Cantine Connecteo</title>
-		<style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-:root {
-	color-scheme: light;
-	--sticky-col-1-width: 150px;
-	--sticky-col-2-width: 260px;
-	--sidebar-width: 280px;
-	--bg: #f4efe7;
-	--bg-strong: #ece3d5;
-	--surface: rgba(255, 251, 245, 0.88);
-	--surface-strong: #ffffff;
-	--text: #17212b;
-	--muted: #66707a;
-	--border: rgba(23, 33, 43, 0.1);
-	--shadow: 0 18px 60px rgba(60, 46, 30, 0.12);
-	--accent: #1f7a5a;
-	--accent-strong: #155a42;
-	--accent-soft: rgba(31, 122, 90, 0.12);
-	--warning: #d97706;
-	--radius-xl: 28px;
-	--radius-lg: 20px;
-	--radius-md: 14px;
-}
-
-* {
-	box-sizing: border-box;
-}
-
-html,
-body {
-	margin: 0;
-	min-height: 100%;
-}
-
-body {
-	font-family: 'Plus Jakarta Sans', sans-serif;
-	color: var(--text);
-	background:
-		radial-gradient(circle at top left, rgba(31, 122, 90, 0.16), transparent 32%),
-		radial-gradient(circle at top right, rgba(217, 119, 6, 0.12), transparent 28%),
-		linear-gradient(180deg, #fbf7f0 0%, var(--bg) 55%, #f1e8db 100%);
-	overflow-x: hidden;
-}
-
-.page-shell {
-	position: relative;
-	min-height: 100vh;
-	padding: 20px 14px 28px;
-	overflow: visible;
-}
-
-.dashboard-layout {
-	display: grid;
-	grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-	gap: 14px;
-	width: 100%;
-	margin: 0;
-}
-
-body.sidebar-collapsed .dashboard-layout {
-	grid-template-columns: 64px minmax(0, 1fr);
-}
-
-.background-glow {
-	position: absolute;
-	width: 360px;
-	height: 360px;
-	filter: blur(14px);
-	opacity: 0.45;
-	pointer-events: none;
-}
-
-.background-glow-left {
-	top: -120px;
-	left: -140px;
-	background: radial-gradient(circle, rgba(31, 122, 90, 0.24), transparent 70%);
-}
-
-.background-glow-right {
-	bottom: -160px;
-	right: -140px;
-	background: radial-gradient(circle, rgba(217, 119, 6, 0.22), transparent 70%);
-}
-
-.app-card {
-	position: relative;
-	z-index: 1;
-	width: 100%;
-	margin: 0;
-	padding: 28px;
-	border: 1px solid rgba(255, 255, 255, 0.52);
-	border-radius: 34px;
-	background: var(--surface);
-	box-shadow: var(--shadow);
-}
-
-.sidebar {
-	position: sticky;
-	top: 12px;
-	align-self: start;
-	max-height: calc(100vh - 24px);
-	padding: 14px;
-	border: 1px solid var(--border);
-	border-radius: 22px;
-	background: rgba(255, 251, 245, 0.92);
-	box-shadow: var(--shadow);
-	transform: none;
-	min-width: 0;
-	overflow: auto;
-	transition: width 0.22s ease, padding 0.22s ease, transform 0.22s ease;
-}
-
-body.sidebar-collapsed .sidebar {
-	padding: 12px 8px;
-	transform: translateX(0);
-	width: 64px;
-}
-
-.sidebar-toggle {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 8px;
-	width: 100%;
-	min-height: 38px;
-	margin-top: 12px;
-	padding: 0 12px;
-	border: 1px solid var(--border);
-	border-radius: 14px;
-	background: rgba(31, 122, 90, 0.08);
-	color: var(--accent-strong);
-	font-weight: 800;
-	text-align: center;
-	box-shadow: none;
-}
-
-body.sidebar-collapsed .sidebar-toggle {
-	padding: 0;
-	width: 42px;
-	min-height: 42px;
-	margin-left: auto;
-	margin-right: auto;
-	border-radius: 999px;
-}
-
-.sidebar-content {
-	display: grid;
-	gap: 0;
-	min-width: 0;
-	transition: opacity 0.18s ease, transform 0.18s ease, max-width 0.22s ease;
-}
-
-body.sidebar-collapsed .sidebar-content {
-	display: grid;
-}
-
-body.sidebar-collapsed .sidebar-title,
-body.sidebar-collapsed .sidebar-metric,
-body.sidebar-collapsed .sidebar-button-label {
-	display: none;
-}
-
-body.sidebar-collapsed .sidebar-nav {
-	gap: 6px;
-	margin-bottom: 0;
-}
-
-body.sidebar-collapsed .sidebar-button {
-	justify-content: center;
-	padding: 0;
-	min-height: 42px;
-	font-size: 1.05rem;
-	border-radius: 999px;
-	text-align: center;
-	gap: 0;
-}
-
-.sidebar-button-icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1.05rem;
-	line-height: 1;
-	width: 1.4em;
-	flex: 0 0 auto;
-}
-
-.sidebar-button-label {
-	display: inline-block;
-	min-width: 0;
-}
-
-.sidebar-title {
-	margin-bottom: 10px;
-	font-size: 0.74rem;
-	font-weight: 800;
-	letter-spacing: 0.16em;
-	text-transform: uppercase;
-	color: rgb(93, 93, 199);
-}
-
-.sidebar-nav {
-	display: grid;
-	gap: 8px;
-	margin-bottom: 12px;
-}
-
-.sidebar-button {
-	width: 100%;
-	justify-content: flex-start;
-	min-height: 42px;
-	padding: 0 14px;
-	border: 1px solid var(--border);
-	border-radius: 14px;
-	background: rgba(255, 255, 255, 0.9);
-	color: var(--text);
-	font-weight: 700;
-	text-align: left;
-	box-shadow: none;
-}
-
-.sidebar-button.is-active {
-	background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-	color: #fff;
-	border-color: transparent;
-}
-
-.sidebar-metric {
-	padding: 12px;
-	border-radius: 16px;
-	background: rgba(23, 33, 43, 0.03);
-	margin-top: 8px;
-}
-
-.sidebar-metric span {
-	display: block;
-	margin-bottom: 3px;
-	color: var(--muted);
-	font-size: 0.76rem;
-	font-weight: 700;
-}
-
-.sidebar-metric strong {
-	font-size: 1rem;
-}
-
-.content-stack {
-	display: grid;
-	gap: 12px;
-}
-
-.hero {
-	display: block;
-	margin-bottom: 14px;
-}
-
-.eyebrow {
-	margin: 0 0 10px;
-	font-size: 0.7rem;
-	font-weight: 800;
-	letter-spacing: 0.16em;
-	text-transform: uppercase;
-	color: var(--accent-strong);
-}
-
-h1,
-h2,
-h3,
-p {
-	margin: 0;
-}
-
-h1 {
-	font-size: clamp(1.8rem, 3vw, 3.2rem);
-	line-height: 0.96;
-	letter-spacing: -0.04em;
-}
-
-.hero-copy {
-	max-width: 68ch;
-	margin-top: 10px;
-	color: var(--muted);
-	font-size: 0.92rem;
-	line-height: 1.7;
-}
-
-.hero-visual-shell {
-	grid-column: 2;
-	display: grid;
-	gap: 12px;
-	align-content: start;
-	min-width: 0;
-}
-
-.hero-visual {
-	margin: 0;
-	position: relative;
-	isolation: isolate;
-}
-
-.hero-visual-frame {
-	position: relative;
-	overflow: hidden;
-	border-radius: 24px;
-	aspect-ratio: 1 / 1;
-	background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(235, 227, 214, 0.92));
-	box-shadow: 0 22px 50px rgba(60, 46, 30, 0.16);
-	border: 1px solid rgba(255, 255, 255, 0.55);
-}
-
-.hero-slideshow {
-	position: absolute;
-	inset: 0;
-	z-index: 0;
-}
-
-.hero-slide {
-	position: absolute;
-	inset: 0;
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	opacity: 0;
-	transform: none;
-	transition: opacity 0.55s ease;
-}
-
-.hero-slide.is-active {
-	opacity: 1;
-	z-index: 1;
-}
-
-.hero-visual-frame::before {
-	content: '';
-	position: absolute;
-	inset: 0;
-	background: linear-gradient(135deg, rgba(31, 122, 90, 0.16), transparent 35%, rgba(217, 119, 6, 0.14));
-	z-index: 1;
-	pointer-events: none;
-}
-
-.hero-visual-frame::after {
-	content: '';
-	position: absolute;
-	inset: 14px;
-	border-radius: 24px;
-	border: 1px solid rgba(255, 255, 255, 0.35);
-	box-shadow: inset 0 0 0 1px rgba(31, 122, 90, 0.08);
-	z-index: 2;
-	pointer-events: none;
-}
-
-/* Three-column hero layout for desktop, stacks on small screens */
-.hero-columns {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(220px, 1fr));
-	gap: 12px;
-	overflow-x: auto;
-	-webkit-overflow-scrolling: touch;
-	scroll-snap-type: x mandatory;
-}
-.hero-column {
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-	scroll-snap-align: start;
-}
-.hero-column-title {
-	margin: 0 0 8px;
-	font-size: 0.78rem;
-	text-align: center;
- 	color: var(--accent-strong);
- 	font-weight: 800;
-}
-.hero-column .hero-visual-frame {
-	aspect-ratio: 1 / 1;
-}
-
-.hero-chip {
-	position: absolute;
-	z-index: 3;
-	padding: 8px 12px;
-	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.78);
-	color: var(--accent-strong);
-	font-size: 0.72rem;
-	font-weight: 800;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	box-shadow: 0 12px 24px rgba(21, 90, 66, 0.12);
-}
-
-.hero-chip.one {
-	top: 16px;
-	left: 16px;
-}
-
-.hero-chip.two {
-	bottom: 16px;
-	right: 16px;
-}
-
-.hero-chip.three {
-	top: 50%;
-	right: 16px;
-	transform: translateY(-50%);
-}
-
-.hero-glow {
-	position: absolute;
-	z-index: 0;
-	border-radius: 999px;
-	opacity: 0.7;
-}
-
-.hero-glow.one {
-	top: -18px;
-	right: 26px;
-	width: 80px;
-	height: 80px;
-	background: rgba(31, 122, 90, 0.22);
-}
-
-.hero-glow.two {
-	left: -18px;
-	bottom: 24px;
-	width: 56px;
-	height: 56px;
-	background: rgba(217, 119, 6, 0.22);
-	animation-delay: 1.2s;
-}
-
-.hero-link-row {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	flex-wrap: wrap;
-	margin-top: 12px;
-}
-
-.link-label {
-	padding: 8px 12px;
-	border-radius: 999px;
-	background: rgba(23, 33, 43, 0.06);
-	color: var(--muted);
-	font-size: 0.82rem;
-	font-weight: 700;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-}
-
-.hero-link {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 40px;
-	padding: 0 14px;
-	border-radius: 12px;
-	background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-	color: #fff;
-	font-weight: 700;
-	text-decoration: none;
-	box-shadow: 0 12px 28px rgba(21, 90, 66, 0.18);
-}
-
-.hero-link:hover {
-	transform: translateY(-1px);
-}
-
-.hero-stats {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 10px;
-}
-
-.stat-card {
-	padding: 12px 14px;
-	border-radius: var(--radius-lg);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 247, 241, 0.96));
-	border: 1px solid var(--border);
-}
-
-.stat-label {
-	display: block;
-	margin-bottom: 6px;
-	color: var(--muted);
-	font-size: 0.74rem;
-	font-weight: 600;
-}
-
-.stat-card strong {
-	font-size: 1.4rem;
-	letter-spacing: -0.05em;
-}
-
-.stat-action-card {
-	display: flex;
-	align-items: flex-end;
-	justify-content: center;
-}
-
-.stat-action-button {
-	width: 100%;
-	min-height: 56px;
-	border: 0;
-	border-radius: 14px;
-	background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-	color: #fff;
-	font-weight: 800;
-	cursor: pointer;
-	box-shadow: 0 12px 28px rgba(21, 90, 66, 0.24);
-}
-
-.table-panel-hidden {
-	display: none;
-}
-
-.form-grid {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 14px;
-	align-items: end;
-}
-
-.panel {
-	padding: 14px;
-	border-radius: 22px;
-	border: 1px solid var(--border);
-	background: var(--surface-strong);
-}
-
-.panel + .panel {
-	margin-top: 12px;
-}
-
-.panel-anchor {
-	scroll-margin-top: 20px;
-}
-
-.panel-header {
-	display: flex;
-	justify-content: space-between;
-	gap: 12px;
-	margin-bottom: 12px;
-}
-
-.panel-header h2 {
-	font-size: 1rem;
-	margin-bottom: 4px;
-}
-
-.panel-header p {
-	color: var(--muted);
-	line-height: 1.45;
-	font-size: 0.82rem;
-}
-
-.search-grid {
-	display: grid;
-	grid-template-columns: minmax(0, 1.5fr) auto;
-	gap: 10px;
-	align-items: end;
-}
-
-.sidebar-search {
-	display: grid;
-	gap: 10px;
-	margin-top: 12px;
-}
-
-.sidebar-search .search-grid {
-	grid-template-columns: 1fr;
-}
-
-.sidebar-search .actions {
-	flex-direction: column;
-}
-
-.sidebar-search .actions button {
-	width: 100%;
-}
-
-.search-grid-simple {
-	grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.field span {
-	display: inline-block;
-	margin-bottom: 6px;
-	font-size: 0.78rem;
-	font-weight: 700;
-	color: rgb(7, 125, 204);
-}
-
-.field input,
-.field select {
-	width: 100%;
-	min-height: 42px;
-	padding: 0 12px;
-	border-radius: 12px;
-	border: 1px solid var(--border);
-	background: #e6dfdf;
-	color: var(--text);
-	font: inherit;
-	outline: none;
-	transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
-}
-
-.field input:focus,
-.field select:focus {
-	border-color: rgba(31, 122, 90, 0.4);
-	box-shadow: 0 0 0 4px rgba(31, 122, 90, 0.1);
-}
-
-.actions {
-	display: flex;
-	gap: 8px;
-	flex-wrap: wrap;
-}
-
-button {
-	border: 0;
-	font: inherit;
-	font-weight: 700;
-	border-radius: 12px;
-	min-height: 42px;
-	padding: 0 14px;
-	cursor: pointer;
-	transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-button:hover {
-	transform: translateY(-1px);
-}
-
-.primary-button {
-	color: #fff;
-	background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-	box-shadow: 0 12px 28px rgba(21, 90, 66, 0.24);
-}
-
-.secondary-button {
-	color: var(--text);
-	background: rgba(23, 33, 43, 0.06);
-}
-
-.results-list {
-	display: grid;
-	gap: 10px;
-}
-
-.results-list.empty-state {
-	padding: 12px;
-	border-radius: 14px;
-	border: 1px dashed rgba(23, 33, 43, 0.18);
-	background: linear-gradient(180deg, rgba(248, 244, 238, 0.95), rgba(255, 255, 255, 0.9));
-	color: var(--muted);
-	font-size: 0.82rem;
-}
-
-.result-card {
-	padding: 12px;
-	border-radius: 16px;
-	border: 1px solid var(--border);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(251, 248, 241, 0.98));
-}
-
-.result-card--search.is-ok {
-	border-color: rgba(31, 122, 90, 0.26);
-	background: linear-gradient(180deg, rgba(247, 255, 250, 1), rgba(237, 249, 242, 0.98));
-}
-
-.result-card--search.is-alert {
-	border-color: rgba(217, 77, 77, 0.18);
-	background: linear-gradient(180deg, rgba(255, 248, 248, 1), rgba(255, 243, 243, 0.98));
-}
-
-.result-side {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 12px;
-	margin-bottom: 10px;
-}
-
-.result-meta-row {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	margin-top: 8px;
-}
-
-.result-state-pill {
-	display: inline-flex;
-	align-items: center;
-	min-height: 24px;
-	padding: 4px 8px;
-	border-radius: 999px;
-	background: rgba(23, 33, 43, 0.06);
-	color: var(--muted);
-	font-size: 0.68rem;
-	font-weight: 800;
-}
-
-.result-state-pill.is-ok {
-	background: rgba(31, 122, 90, 0.14);
-	color: var(--accent-strong);
-}
-
-.result-state-pill.is-alert {
-	background: rgba(217, 77, 77, 0.12);
-	color: #9d1c1c;
-}
-
-.result-state-pill.is-checked {
-	background: rgba(26, 88, 145, 0.12);
-	color: #1a5f8e;
-}
-
-.result-topline {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 12px;
-	margin-bottom: 10px;
-}
-
-.result-label {
-	margin-bottom: 4px;
-	color: var(--accent-strong);
-	font-size: 0.72rem;
-	font-weight: 800;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-}
-
-.result-card h3 {
-	font-size: 0.95rem;
-}
-
-.result-badge {
-	padding: 6px 10px;
-	border-radius: 999px;
-	background: var(--accent-soft);
-	color: var(--accent-strong);
-	font-size: 0.72rem;
-	font-weight: 800;
-}
-
-.result-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
-}
-
-.week-grid {
-	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 8px;
-}
-
-.week-column {
-	padding: 10px;
-	border-radius: 14px;
-	background: rgba(217, 77, 77, 0.12);
-	min-width: 0;
-	border: 1px solid rgba(217, 77, 77, 0.15);
-}
-
-.week-column.is-ready {
-	background: rgba(31, 122, 90, 0.12);
-	border-color: rgba(31, 122, 90, 0.18);
-}
-
-.week-column.is-missing {
-	background: rgba(217, 77, 77, 0.12);
-	border-color: rgba(217, 77, 77, 0.16);
-}
-
-.week-column.is-checked {
-	box-shadow: inset 0 0 0 1px rgba(31, 122, 90, 0.12);
-}
-
-.week-column.is-rajout {
-	background: rgba(31, 122, 90, 0.14);
-	border-color: rgba(31, 122, 90, 0.22);
-}
-
-.week-column h4 {
-	margin: 0 0 8px;
-	font-size: 0.75rem;
-	text-transform: uppercase;
-	letter-spacing: 0.08em;
-	color: var(--accent-strong);
-}
-
-.week-item {
-	display: grid;
-	gap: 2px;
-	margin-top: 6px;
-	padding: 6px 8px;
-	border-radius: 10px;
-	background: rgba(255, 255, 255, 0.65);
-}
-
-.week-item span {
-	font-size: 0.68rem;
-	font-weight: 700;
-	color: var(--muted);
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-}
-
-.week-item strong {
-	font-size: 0.74rem;
-	font-weight: 700;
-	color: var(--text);
-}
-
-.day-status {
-	margin-top: 6px;
-	font-size: 0.65rem;
-	font-weight: 800;
-	letter-spacing: 0.05em;
-	text-transform: uppercase;
-	color: var(--muted);
-}
-
-.day-status.is-ready {
-	color: var(--accent-strong);
-}
-
-.day-status.is-missing {
-	color: #9d1c1c;
-}
-
-.day-status.is-checked {
-	color: #1a5f8e;
-}
-
-.day-action-row {
-	margin-top: 8px;
-}
-
-.day-action,
-.day-action-button {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	min-height: 32px;
-	padding: 0 8px;
-	border-radius: 10px;
-	text-align: center;
-	font-size: 0.68rem;
-	font-weight: 800;
-}
-
-.day-action--blocked {
-	background: rgba(23, 33, 43, 0.05);
-	color: var(--muted);
-}
-
-.day-action--taken {
-	background: rgba(31, 122, 90, 0.14);
-	color: var(--accent-strong);
-}
-
-.day-action-button {
-	border: 0;
-	background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-	color: #fff;
-	cursor: pointer;
-}
-
-.day-action-button:disabled {
-	opacity: 0.72;
-	cursor: wait;
-}
-
-.week-rajout {
-	margin-top: 6px;
-	padding: 6px 8px;
-	border-radius: 10px;
-	background: rgba(31, 122, 90, 0.12);
-	color: var(--accent-strong);
-	font-size: 0.7rem;
-	font-weight: 800;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	text-align: center;
-}
-
-.rajout-day-group {
-	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 8px;
-	margin-top: 8px;
-	grid-column: 1 / -1;
-}
-
-.rajout-day-button {
-	min-height: 40px;
-	padding: 0 10px;
-	border: 1px solid rgba(217, 77, 77, 0.18);
-	border-radius: 12px;
-	background: rgba(217, 77, 77, 0.12);
-	color: var(--text);
-	font-size: 0.76rem;
-	font-weight: 800;
-	text-transform: uppercase;
-	letter-spacing: 0.03em;
-	white-space: nowrap;
-}
-
-.rajout-day-button.is-selected {
-	background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-	color: #fff;
-	border-color: transparent;
-}
-
-.result-item {
-	padding: 10px;
-	border-radius: 14px;
-	background: rgba(23, 33, 43, 0.03);
-}
-
-.result-item span {
-	display: block;
-	margin-bottom: 4px;
-	color: var(--muted);
-	font-size: 0.72rem;
-	font-weight: 700;
-}
-
-.result-item strong {
-	font-size: 0.84rem;
-}
-
-/* Formulaire card styles (inline because this page uses embedded CSS) */
-.formulaire-result {
-	display: grid;
-	gap: 10px;
-	padding: 14px;
-	border-radius: 16px;
-	border: 1px solid rgba(23, 33, 43, 0.1);
-	background: rgba(255, 255, 255, 0.78);
-	min-width: 0;
-}
-
-.formulaire-result.is-green {
-	background: linear-gradient(180deg, rgba(227, 255, 241, 0.98), rgba(244, 255, 249, 0.96)) !important;
-	border-color: rgba(31, 122, 90, 0.26);
-}
-
-.formulaire-result.is-orange {
-	background: linear-gradient(180deg, rgba(255, 242, 218, 0.98), rgba(255, 249, 236, 0.96)) !important;
-	border-color: rgba(217, 119, 6, 0.26);
-}
-
-.formulaire-result.is-red {
-	background: linear-gradient(180deg, rgba(255, 226, 226, 0.98), rgba(255, 242, 242, 0.96)) !important;
-	border-color: rgba(220, 38, 38, 0.28);
-}
-
-.formulaire-result-layout--avatar {
-	display: grid;
-	grid-template-columns: 88px minmax(0, 1fr);
-	gap: 12px;
-	align-items: start;
-	min-width: 0;
-}
-
-.formulaire-result-avatar {
-	width: 88px;
-	height: 88px;
-	border-radius: 14px;
-	background-size: cover;
-	background-position: center;
-	background-repeat: no-repeat;
-	border: 1px solid rgba(255,255,255,0.65);
-	box-shadow: 0 8px 18px rgba(23, 33, 43, 0.12);
-}
-
-.formulaire-result-main {
-	display: grid;
-	gap: 8px;
-	min-width: 0;
-}
-
-.formulaire-result-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
-	gap: 10px;
-	min-width: 0;
-}
-
-.formulaire-result-name {
-	font-size: 1.02rem;
-	font-weight: 800;
-	min-width: 0;
-	overflow-wrap: break-word;
-	word-break: normal;
-}
-
-.formulaire-result-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
-	min-width: 0;
-}
-
-.formulaire-result-grid--planning {
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.formulaire-result-item {
-	display: grid;
-	gap: 3px;
-	padding: 9px 10px;
-	border-radius: 10px;
-	background: rgba(255, 255, 255, 0.62);
-	border: 1px solid rgba(23, 33, 43, 0.05);
-	min-width: 0;
-}
-
-.formulaire-result-item span {
-	font-size: 0.72rem;
-	font-weight: 800;
-	color: var(--accent-strong);
-	min-width: 0;
-}
-
-.formulaire-result-item strong {
-	font-size: 0.9rem;
-	font-weight: 800;
-	color: var(--text);
-	min-width: 0;
-	overflow-wrap: break-word;
-	word-break: normal;
-}
-
-.formulaire-result-item--check {
-	grid-column: 1 / -1;
-}
-
-.formulaire-result-item--check.is-hidden {
-	display: none;
-}
-
-.formulaire-result-rajout-badge,
-.formulaire-result-footnote.is-rajout {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	padding: 7px 12px;
-	border-radius: 999px;
-	font-size: 0.72rem;
-	font-weight: 900;
-	background: rgba(253, 224, 71, 0.45);
-	border: 1px solid rgba(202, 138, 4, 0.26);
-	color: #854d0e;
-	width: fit-content;
-	max-width: 100%;
-	white-space: normal;
-}
-
-.table-wrap {
-	overflow: auto;
-	border-radius: 16px;
-	border: 1px solid var(--border);
-}
-
-.table-scroll-tip {
-	margin-top: 8px;
-	font-size: 0.74rem;
-	color: var(--muted);
-}
-
-table {
-	width: 100%;
-	/* allow table to shrink and wrap on small screens to prevent horizontal page scroll */
-	min-width: 0;
-	border-collapse: collapse;
-	background: #fff;
-}
-
-thead th {
-	position: sticky;
-	top: 0;
-	z-index: 3;
-	padding: 10px 10px;
-	border-bottom: 1px solid var(--border);
-	background: linear-gradient(180deg, #f8f4ed, #f2ebe1);
-	text-align: left;
-	font-size: 0.7rem;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	white-space: nowrap;
-}
-
-tbody td {
-	padding: 10px;
-	border-bottom: 1px solid rgba(23, 33, 43, 0.06);
-	vertical-align: top;
-	font-size: 0.8rem;
-}
-
-thead th:nth-child(1),
-tbody td:nth-child(1) {
-	position: sticky;
-	left: 0;
-	/* allow these columns to shrink on small screens */
-	min-width: 80px;
-	max-width: 220px;
-}
-
-thead th:nth-child(2),
-tbody td:nth-child(2) {
-	position: sticky;
-	left: 80px;
-	min-width: 100px;
-	max-width: 320px;
-}
-
-thead th:nth-child(1),
-thead th:nth-child(2) {
-	z-index: 4;
-	background: linear-gradient(180deg, #f8f4ed, #f2ebe1);
-}
-
-tbody td:nth-child(1),
-tbody td:nth-child(2) {
-	z-index: 2;
-	background: #fff;
-}
-
-tbody tr:nth-child(even) td {
-	background: rgba(23, 33, 43, 0.015);
-}
-
-.cell-strong {
-	font-weight: 800;
-}
-
-.page-section {
-	display: none;
-}
-
-.page-section.active {
-	display: block;
-}
-
-.compact-panel .panel-header p,
-.compact-panel .field span,
-.compact-panel .table-scroll-tip,
-.compact-panel .results-list.empty-state,
-.compact-panel .result-item strong {
-	font-size: 0.78rem;
-}
-
-.compact-rajout .form-grid {
-	grid-template-columns: 1fr 1fr 140px;
-}
-
-.compact-rajout .field input {
-	min-height: 40px;
-}
-
-.fixed-value {
-	min-height: 40px;
-	padding: 10px 12px;
-	border: 1px solid var(--border);
-	border-radius: 12px;
-	background: rgba(23, 33, 43, 0.03);
-	color: var(--text);
-	font-size: 0.82rem;
-	font-weight: 700;
-}
-
-.compact-panel {
-	padding: 12px;
-}
-
-.compact-rajout .form-grid {
-	grid-template-columns: 1fr 1fr 140px;
-}
-
-@media (max-width: 1339px) {
-	.sidebar {
-		position: relative;
-		top: auto;
-		transform: none;
-	}
-
-	.dashboard-layout {
-		grid-template-columns: 1fr;
-		margin-left: 0;
-	}
-
-	.app-card {
-		margin-left: 0;
-		width: 100%;
-		max-width: none;
-	}
-
-	.search-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.hero-columns {
-		width: min(100%, 700px);
-		margin: 0 auto;
-		gap: 4px;
-	}
-
-	.hero-column-title {
-		font-size: 0.54rem;
-	}
-
-	.hero-visual-frame {
-		border-radius: 16px;
-	}
-
-	.hero-slide {
-		object-position: center center;
-	}
-
-	.hero-stats {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-
-	.form-grid {
-		grid-template-columns: 1fr;
-	}
-}
-
-@media (max-width: 720px) {
-		body.sidebar-collapsed .dashboard-layout {
-			grid-template-columns: 1fr;
-		}
-
-		body.sidebar-collapsed .sidebar {
-			width: auto;
-			padding: 10px;
-		}
-
-		body.sidebar-collapsed .sidebar-toggle {
-			display: none;
-		}
-
-		body.sidebar-collapsed .sidebar-title,
-		body.sidebar-collapsed .sidebar-metric,
-		body.sidebar-collapsed .sidebar-button-label {
-			display: block;
-		}
-
-	.page-shell {
-		padding: 10px;
-	}
-
-	.app-card {
-		padding: 10px;
-		border-radius: 16px;
-	}
-
-	.sidebar {
-		padding: 10px;
-		border-radius: 16px;
-	}
-
-	.hero-stats,
-	.result-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.result-topline {
-		flex-direction: column;
-	}
-
-	.hero-link-row {
-		align-items: flex-start;
-	}
-
-	.hero-copy {
-		font-size: 0.82rem;
-		line-height: 1.45;
-	}
-
-	.hero-stats {
-		gap: 8px;
-	}
-
-	.stat-card {
-		padding: 10px 12px;
-	}
-
-	.stat-card strong {
-		font-size: 1.35rem;
-	}
-
-	h1 {
-		font-size: 1.55rem;
-	}
-
-	.panel {
-		padding: 10px;
-	}
-
-	.panel-header {
-		gap: 10px;
-		margin-bottom: 12px;
-	}
-
-	.panel-header h2 {
-		font-size: 0.98rem;
-	}
-
-	.panel-header p {
-		font-size: 0.76rem;
-		line-height: 1.3;
-	}
-
-	.search-grid {
-		gap: 10px;
-	}
-
-	.field span {
-		font-size: 0.74rem;
-	}
-
-	.actions {
-		flex-direction: column;
-	}
-
-	button,
-	.field input,
-	.field select {
-		min-height: 38px;
-	}
-
-	.week-grid {
-		grid-template-columns: 1fr;
-		gap: 6px;
-	}
-
-	.rajout-day-group {
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 6px;
-	}
-
-	.week-column {
-		padding: 8px;
-	}
-
-	.week-column h4 {
-		font-size: 0.7rem;
-		margin-bottom: 6px;
-	}
-
-	.week-item {
-		padding: 5px 6px;
-	}
-
-	.week-item span {
-		font-size: 0.62rem;
-	}
-
-	.week-item strong {
-		font-size: 0.7rem;
-	}
-
-	.week-rajout {
-		padding: 5px 6px;
-		font-size: 0.66rem;
-	}
-
-	.rajout-day-button {
-		min-height: 34px;
-		padding: 0 4px;
-		font-size: 0.66rem;
-		white-space: normal;
-		line-height: 1.05;
-	}
-
-	.compact-rajout .form-grid {
-		grid-template-columns: 1fr;
-	}
-
-	thead th:nth-child(1),
-	tbody td:nth-child(1),
-	thead th:nth-child(2),
-	tbody td:nth-child(2) {
-		position: static;
-		left: auto;
-		min-width: unset;
-		max-width: unset;
-	}
-}
-
-@media (max-width: 420px) {
-	body {
-		font-size: 13px;
-		overflow-x: hidden;
-	}
-
-	.page-shell {
-		padding: 8px;
-	}
-
-	.dashboard-layout {
-		gap: 10px;
-		grid-template-columns: 1fr;
-		height: auto;
-		display: grid;
-	}
-
-	.app-card,
-	.sidebar {
-		padding: 8px;
-		border-radius: 14px;
-		width: 100%;
-	}
-
-	.sidebar-title {
-		font-size: 0.72rem;
-	}
-
-	.sidebar-button {
-		min-height: 36px;
-		padding: 0 10px;
-		font-size: 0.85rem;
-	}
-
-	.sidebar-metric {
-		padding: 6px 8px;
-	}
-
-	.sidebar-metric span {
-		font-size: 0.7rem;
-		line-height: 1.1;
-	}
-
-	.sidebar-metric strong {
-		font-size: 0.95rem;
-	}
-
-	.hero-copy {
-		display: block;
-		font-size: 0.82rem;
-		line-height: 1.45;
-	}
-
-	.hero {
-		position: relative;
-		overflow: hidden;
-		min-height: auto;
-		padding: 10px;
-	}
-
-	.hero-visual-frame {
-		border-radius: 16px;
-	}
-
-	.hero-columns {
-		width: 100%;
-		grid-template-columns: repeat(3, minmax(220px, 1fr));
-		gap: 8px;
-		overflow-x: auto;
-	}
-
-	.hero-column-title {
-		margin-bottom: 5px;
-		font-size: 0.58rem;
-	}
-
-	.hero-slide {
-		object-position: center right;
-	}
-
-	.formulaire-result {
-		padding: 12px;
-	}
-
-	.formulaire-result-layout--avatar {
-		grid-template-columns: 1fr;
-		gap: 10px;
-	}
-
-	.formulaire-result-avatar {
-		width: 72px;
-		height: 72px;
-	}
-
-	.formulaire-result-header {
-		flex-direction: column;
-		align-items: flex-start;
-	}
-
-	.formulaire-result-grid,
-	.formulaire-result-grid--planning {
-		grid-template-columns: 1fr;
-	}
-
-	.formulaire-result-item--check {
-		grid-column: auto;
-	}
-
-	.formulaire-result-rajout-badge,
-	.formulaire-result-footnote.is-rajout {
-		white-space: normal;
-	}
-
-	.formulaire-result-name,
-	.formulaire-result-item strong {
-		overflow-wrap: break-word;
-		word-break: normal;
-	}
-
-	.hero-chip {
-		font-size: 0.56rem;
-		padding: 5px 8px;
-	}
-
-	.hero-chip.one {
-		top: 10px;
-		left: 10px;
-	}
-
-	.hero-chip.two {
-		right: 10px;
-		bottom: 10px;
-	}
-
-	.hero-chip.three {
-		top: auto;
-		right: 10px;
-		bottom: 44px;
-		transform: none;
-	}
-
-	.hero-stats {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 6px;
-	}
-
-	h1 {
-		font-size: 1.25rem;
-		line-height: 1;
-	}
-
-	.stat-card {
-		padding: 7px 8px;
-	}
-
-	.stat-label {
-		font-size: 0.58rem;
-	}
-
-	.stat-card strong {
-		font-size: 0.95rem;
-	}
-
-	.panel {
-		padding: 8px;
-	}
-
-	.panel-header {
-		gap: 6px;
-		margin-bottom: 8px;
-	}
-
-	.panel-header h2 {
-		font-size: 0.95rem;
-	}
-
-	.panel-header p,
-	.results-list.empty-state,
-	.table-scroll-tip {
-		font-size: 0.64rem;
-		line-height: 1.15;
-	}
-
-	.search-grid,
-	.compact-rajout .form-grid {
-		grid-template-columns: 1fr;
-		gap: 8px;
-	}
-
-	.field span {
-		font-size: 0.72rem;
-		margin-bottom: 5px;
-	}
-
-	.field input,
-	.field select,
-	button,
-	.fixed-value {
-		min-height: 40px;
-		font-size: 0.82rem;
-	}
-
-	.actions {
-		gap: 6px;
-	}
-
-	.result-card {
-		padding: 6px;
-		border-radius: 10px;
-	}
-
-	.result-card h3 {
-		font-size: 0.82rem;
-	}
-
-	.result-badge {
-		padding: 3px 5px;
-		font-size: 0.58rem;
-	}
-
-	.week-grid {
-		grid-template-columns: 1fr;
-		gap: 4px;
-	}
-
-	.week-column {
-		padding: 5px;
-	}
-
-	.week-column h4 {
-		font-size: 0.62rem;
-		margin-bottom: 4px;
-	}
-
-	.week-item {
-		padding: 4px;
-	}
-
-	.week-item span {
-		font-size: 0.56rem;
-	}
-
-	.week-item strong {
-		font-size: 0.62rem;
-	}
-
-	.week-rajout {
-		padding: 4px;
-		font-size: 0.58rem;
-	}
-
-	/* Mobile: make rajout name & matricule smaller and compact the table */
-	.result-card .rajout-card-info,
-	.rajout-card-info {
-		flex: 0 0 56px !important;
-		max-width: 56px !important;
-		min-width: 0 !important;
-	}
-
-	.result-card .rajout-card-name,
-	.rajout-card-name,
-	.rajout-name {
-		font-size: 0.42rem !important;
-		font-weight: 800 !important;
-		white-space: normal !important;
-		line-height: 1 !important;
-		margin-bottom: 1px !important;
-		overflow-wrap: anywhere !important;
-		display: -webkit-box !important;
-		-webkit-line-clamp: 2 !important;
-		-webkit-box-orient: vertical !important;
-		overflow: hidden !important;
-	}
-
-	.result-card .rajout-card-meta,
-	.rajout-card-meta,
-	.rajout-matricule {
-		font-size: 0.36rem !important;
-		white-space: normal !important;
-		color: var(--muted) !important;
-	}
-
-	.rajout-card-table {
-		max-width: calc(100vw - 64px) !important;
-	}
-
-	.rajout-table,
-	.rajout-table th,
-	.rajout-table td {
-		font-size: 0.48rem !important;
-		padding: 1px !important;
-	}
-
-	.hero-slide {
-		z-index: 3;
-	}
-
-	.hero-slide.is-active {
-		z-index: 4;
-	}
-
-	.rajout-day-group {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 5px;
-	}
-
-	.rajout-day-button {
-		min-height: 32px;
-		padding: 0 4px;
-		font-size: 0.58rem;
-		white-space: normal;
-		line-height: 1.05;
-	}
-
-	.rajout-name {
-		font-size: 0.7rem;
-	}
-
-	.rajout-matricule {
-		font-size: 0.54rem;
-	}
-
-	.rajout-card-table {
-		max-width: calc(100vw - 120px);
-	}
-
-	.rajout-day-th {
-		padding: 1px;
-		font-size: 0.46rem;
-	}
-
-	.rajout-x {
-		padding: 1px;
-		font-size: 0.5rem;
-	}
-
-	body.page-rajout-active .rajout-list-only {
-		gap: 8px;
-	}
-
-	body.page-rajout-active .rajout-card-row {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: nowrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		width: 100%;
-		padding: 2px 0;
-	}
-
-	body.page-rajout-active .rajout-card-info {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		justify-content: center;
-		gap: 2px;
-		min-width: 0;
-		flex: 0 0 16% !important;
-		max-width: 16% !important;
-	}
-
-	body.page-rajout-active .rajout-card-name {
-		font-size: 0.4rem;
-		font-weight: 800;
-		line-height: 1;
-		color: var(--text);
-		white-space: normal;
-		overflow-wrap: anywhere;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	body.page-rajout-active .rajout-card-meta {
-		font-size: 0.36rem;
-		font-weight: 700;
-		color: var(--muted);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	body.page-rajout-active .rajout-card-table {
-		flex: 1 1 auto;
-		margin-left: auto;
-		max-width: calc(100vw - 58px);
-		overflow: hidden;
-	}
-
-	body.page-rajout-active .rajout-type-badge {
-		font-size: 0.42rem;
-		padding: 2px 5px;
-		line-height: 1;
-	}
-
-	body.page-rajout-active .rajout-day-th,
-	body.page-rajout-active .rajout-x {
-		padding: 0 1px;
-		font-size: 0.36rem;
-		line-height: 1;
-	}
-
-	body.page-rajout-active .rajout-section-group {
-		display: grid;
-		gap: 8px;
-		margin-bottom: 14px;
-	}
-
-	body.page-rajout-active .rajout-section-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 12px;
-		border-radius: 14px;
-		background: linear-gradient(135deg, rgba(31, 122, 90, 0.08), rgba(255, 255, 255, 0.92));
-		border: 1px solid rgba(31, 122, 90, 0.12);
-		box-shadow: 0 8px 18px rgba(23, 33, 43, 0.05);
-	}
-
-	body.page-rajout-active .rajout-section-header h3 {
-		margin: 0;
-		font-size: 0.82rem;
-		font-weight: 900;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: var(--accent-strong);
-	}
-
-	body.page-rajout-active .rajout-section-header span {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 28px;
-		padding: 4px 8px;
-		border-radius: 999px;
-		background: var(--accent-soft);
-		color: var(--accent-strong);
-		font-size: 0.72rem;
-		font-weight: 900;
-	}
-
-	body.page-rajout-active .rajout-list-group {
-		gap: 8px;
-	}
-
-	body.page-rajout-active .rajout-type-badge {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		align-self: flex-start;
-		padding: 4px 9px;
-		border-radius: 999px;
-		font-size: 0.62rem;
-		font-weight: 900;
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-		white-space: nowrap;
-		border: 1px solid rgba(31, 122, 90, 0.12);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-	}
-
-	body.page-rajout-active .rajout-type-badge.is-collaborator-column {
-		background: rgba(31, 122, 90, 0.14);
-		color: var(--accent-strong);
-	}
-
-	body.page-rajout-active .rajout-card-info,
-	body.page-rajout-active .rajout-card-table {
-		min-width: 0;
-	}
-
-	body.page-rajout-active .rajout-table {
-		border-collapse: collapse;
-		white-space: nowrap;
-		width: 100%;
-		table-layout: fixed;
-	}
-
-	body.page-rajout-active .rajout-day-th {
-		padding: 1px 2px;
-		font-size: 0.46rem;
-	}
-
-	body.page-rajout-active .rajout-x {
-		padding: 1px 2px;
-		font-size: 0.5rem;
-	}
-
-	}
-
-	@media (max-width: 1100px) {
-		.hero-columns {
-			width: 100%;
-			grid-template-columns: repeat(3, minmax(220px, 1fr));
-			gap: 8px;
-			overflow-x: auto;
-		}
-		.hero-column-title {
-			margin-bottom: 5px;
-			font-size: 0.65rem;
-		}
-		.hero-visual-frame {
-			border-radius: 18px;
-		}
-	}
-		</style>
-
-		<div class="page-shell">
-			<div class="dashboard-layout">
-				<div class="sidebar">
-					<div class="sidebar-content">
-						<div class="sidebar-title">Connecteo</div>
-						<div class="sidebar-nav">
-							<button id="navFormulaireButton" class="sidebar-button" type="button" aria-label="Formulaire">
-								<span class="sidebar-button-icon" aria-hidden="true">🧾</span>
-								<span class="sidebar-button-label">Formulaire</span>
-							</button>
-							<button id="navRechercheButton" class="sidebar-button is-active" type="button" aria-label="Recherche">
-								<span class="sidebar-button-icon" aria-hidden="true">🔎</span>
-								<span class="sidebar-button-label">Recherche</span>
-							</button>
-							<button id="navRajoutButton" class="sidebar-button" type="button" aria-label="Rajouts">
-								<span class="sidebar-button-icon" aria-hidden="true">➕</span>
-								<span class="sidebar-button-label">Rajouts</span>
-							</button>
-							<button id="navExportButton" class="sidebar-button" type="button" aria-label="Exporter">
-								<span class="sidebar-button-icon" aria-hidden="true">💾</span>
-								<span class="sidebar-button-label">Exporter</span>
-							</button>
-						</div>
-						<div class="sidebar-metric">
-							<span>Total</span>
-							<strong id="totalRows">0</strong>
-						</div>
-						<div class="sidebar-metric">
-							<span>Pas de planning</span>
-							<strong id="noPlanningCount">0</strong>
-						</div>
-						<div class="sidebar-metric">
-							<span>Pas de choix</span>
-							<strong id="noChoiceCount">0</strong>
-						</div>
-						<div class="sidebar-metric">
-							<span>Rajout simple</span>
-							<strong id="simpleRajoutCount">0</strong>
-						</div>
-
-						<button id="sidebarToggleButton" class="sidebar-toggle" type="button" aria-expanded="true" aria-label="Réduire le sidebar">◀</button>
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="icon" type="image/jpg" href="restau.jpg" />
+	<title>Cantine Connecteo</title>
+	<link rel="stylesheet" href="styles.css" />
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="page-shell">
+	<div class="dashboard-layout">
+		<div class="sidebar">
+			<div class="sidebar-content">
+				<div class="sidebar-title">Connecteo</div>
+				<div class="sidebar-nav">
+					<button id="navFormulaireButton" class="sidebar-button" type="button" aria-label="Formulaire">
+						<span class="sidebar-button-icon" aria-hidden="true">🧾</span>
+						<span class="sidebar-button-label">Formulaire</span>
+					</button>
+					<button id="navRechercheButton" class="sidebar-button is-active" type="button" aria-label="Recherche">
+						<span class="sidebar-button-icon" aria-hidden="true">🔎</span>
+						<span class="sidebar-button-label">Recherche</span>
+					</button>
+					<button id="navRajoutButton" class="sidebar-button" type="button" aria-label="Rajouts">
+						<span class="sidebar-button-icon" aria-hidden="true">➕</span>
+						<span class="sidebar-button-label">Rajouts</span>
+					</button>
+					<button id="navExportButton" class="sidebar-button" type="button" aria-label="Exporter">
+						<span class="sidebar-button-icon" aria-hidden="true">💾</span>
+						<span class="sidebar-button-label">Exporter</span>
+					</button>
+					<button id="navStatsButton" class="sidebar-button" type="button" aria-label="Statistiques">
+						<span class="sidebar-button-icon" aria-hidden="true">📊</span>
+						<span class="sidebar-button-label">Statistiques</span>
+					</button>
+				</div>
+				<div class="sidebar-metric">
+					<span>Total</span>
+					<strong id="totalRows">0</strong>
+				</div>
+				<div class="sidebar-metric">
+					<span>Pas de planning</span>
+					<strong id="noPlanningCount">0</strong>
+				</div>
+				<div class="sidebar-metric">
+					<span>Pas de choix</span>
+					<strong id="noChoiceCount">0</strong>
+				</div>
+				<div class="sidebar-metric">
+					<span>Rajout simple</span>
+					<strong id="simpleRajoutCount">0</strong>
+				</div>
+				<div class="sidebar-metric">
+					<span>Nouveau collaborateur</span>
+					<strong id="newCollaboratorCount">0</strong>
+				</div>
+				<div class="sidebar-metric">
+					<span>Jour tableau</span>
+					<select id="dashboardDayFilter">
+						<option value="lundi">Lundi</option>
+						<option value="mardi">Mardi</option>
+						<option value="mercredi">Mercredi</option>
+						<option value="jeudi">Jeudi</option>
+						<option value="vendredi">Vendredi</option>
+						<option value="samedi">Samedi</option>
+						<option value="dimanche">Dimanche</option>
+					</select>
+				</div>
+				<!-- <div id="sidebarRajoutMetric" class="sidebar-metric sidebar-rajout-note" style="display:none;">
+					<span>Conseil Rajout</span>
+					<strong>⚠️ Attention</strong>
+					<p>Un collaborateur avec un rajout deux semaines de suite peut être pénalisé. Utilisez ce bouton uniquement si le repas est vraiment nécessaire.</p>
+				</div> -->
+				<div class="sidebar-metric-group sidebar-meal-stats">
+					<div class="sidebar-metric-header">📊 STATS REPAS</div>
+					<div class="sidebar-metric">
+						<span>Repas pris</span>
+						<strong id="takenCount">0</strong>
+					</div>
+					<div class="sidebar-metric">
+						<span>Pas encore pris</span>
+						<strong id="notTakenCount">0</strong>
 					</div>
 				</div>
-				<main class="content-stack">
-                    <Section>
-                        <div>
-                            <h1 style="color: #17c9e0;">Suivi  Cantine  Chez  Connecteo</h1>
-							<p class="hero-copy">Rechercher par matricule et gerer les rajouts.</p>
-						</div>
-                    </Section>
-					<section id="topSection" class="hero app-card">
-						<div class="hero-columns">
-							<div class="hero-column">
-								<h3 class="hero-column-title"></h3>
-								<figure class="hero-visual">
-									<div class="hero-visual-frame">
-										<div id="slideshow-left" class="hero-slideshow" aria-label="Images slideshow"></div>
-									</div>
-								</figure>
-							</div>
-							<div class="hero-column">
-								<h3 class="hero-column-title"></h3>
-								<figure class="hero-visual">
-									<div class="hero-visual-frame">
-										<div id="slideshow-center" class="hero-slideshow" aria-label="Riz slideshow"></div>
-									</div>
-								</figure>
-							</div>
-							<div class="hero-column">
-								<h3 class="hero-column-title"></h3>
-								<figure class="hero-visual">
-									<div class="hero-visual-frame">
-										<div id="slideshow-right" class="hero-slideshow" aria-label="Desserts slideshow"></div>
-									</div>
-								</figure>
-							</div>
-						</div>
-					</section>
-
-					<section id="page-recherche" class="panel app-card page-section">
-						<div class="panel-header">
-							<div>
-								<h2>Recherche générale</h2>
-								<p>Recherche par matricule, affichage des résultats, puis formulaire de rajout juste en dessous.</p>
-							</div>
-						</div>
-						<form id="searchForm" class="search-grid">
-							<div class="field">
-								<span>Matricule</span>
-								<input id="matriculeInput" type="text" placeholder="Entrez le matricule" />
-							</div>
-							<div class="actions">
-								<button type="submit" class="primary-button">Rechercher</button>
-								<button id="resetButton" type="button" class="secondary-button">Réinitialiser</button>
-							</div>
-						</form>
-						<div id="resultsHint" style="margin-top:4px;color:var(--muted)"></div>
-						<div id="searchResults" class="results-list empty-state" style="margin-top:12px">Lancez une recherche pour afficher les résultats du matricule.</div>
-				
-					</section>
-                    
-					<section id="page-formulaire" class="panel app-card page-section">
-						<div class="panel-header">
-							<div>
-								<h2>Fiche collaborateur</h2>
-								<p>Recherche indépendante par matricule pour afficher le jour d’aujourd’hui, les infos planning/choix, et l’état du repas avec une fiche visuelle plus lumineuse.</p>
-							</div>
-						</div>
-						<form id="formulaireSearchForm" class="search-grid">
-							<div class="field">
-								<span>Matricule</span>
-								<input id="formulaireMatriculeInput" type="text" placeholder="Entrez le matricule" />
-							</div>
-							<div class="actions">
-								<button type="submit" class="primary-button">Rechercher</button>
-								<button id="formulaireResetButton" type="button" class="secondary-button">Réinitialiser</button>
-							</div>
-						</form>
-						<div id="formulaireResults" class="results-list empty-state">Lancez une recherche dans Formulaire pour voir le jour d’aujourd’hui du matricule recherché.</div>
-					</section>
-
-					<section id="page-rajout" class="panel app-card rajout-panel page-section">
-						<div id="rajoutStatus" style="margin-top:8px;color:var(--muted)"></div>
-						<div id="rajoutList" class="results-list rajout-list-only" style="margin-top:12px"></div>
-					</section>
-
-					<section id="page-export" class="panel app-card page-section">
-						<div class="panel-header">
-							<div>
-								<h2>Exporter les données</h2>
-								<p>Choisissez un jour de la semaine pour exporter les données correspondantes.</p>
-							</div>
-						</div>
-						<form id="exportForm" class="search-grid">
-							<div class="field">
-								<span>Jour</span>
-								<select id="exportDay">
-									<option value="all">Tous les jours</option>
-									<option value="lundi">Lundi</option>
-									<option value="mardi">Mardi</option>
-									<option value="mercredi">Mercredi</option>
-									<option value="jeudi">Jeudi</option>
-									<option value="vendredi">Vendredi</option>
-									<option value="samedi">Samedi</option>
-									<option value="dimanche">Dimanche</option>
-								</select>
-							</div>
-							<div class="actions">
-								<button id="exportButton" type="button" class="primary-button">Télécharger XLSX</button>
-							</div>
-						</form>
-						<div id="exportStatus" style="margin-top:8px;color:var(--muted)"></div>
-					</section>
-				</main>
+				<button id="sidebarToggleButton" class="sidebar-toggle" type="button" aria-expanded="true" aria-label="Réduire le sidebar">◀</button>
 			</div>
 		</div>
+		<main class="content-stack">
+			<section>
+				<div>
+					<h1 style="color: #17c9e0;">Suivi Cantine Chez Connecteo</h1>
+					<p class="hero-copy">Rechercher par matricule et gerer les rajouts.</p>
 
-		<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-		<script src="./app.js"></script>
-	</body>
+				</div>
+			</section>
+			<section id="topSection" class="hero app-card">
+				<div class="hero-columns">
+					<div class="hero-column">
+						<h3 class="hero-column-title"></h3>
+						<figure class="hero-visual">
+							<div class="hero-visual-frame">
+								<div id="slideshow-left" class="hero-slideshow" aria-label="Images slideshow"></div>
+							</div>
+						</figure>
+					</div>
+					<div class="hero-column">
+						<h3 class="hero-column-title"></h3>
+						<figure class="hero-visual">
+							<div class="hero-visual-frame">
+								<div id="slideshow-center" class="hero-slideshow" aria-label="Riz slideshow"></div>
+							</div>
+						</figure>
+					</div>
+					<div class="hero-column">
+						<h3 class="hero-column-title"></h3>
+						<figure class="hero-visual">
+							<div class="hero-visual-frame">
+								<div id="slideshow-right" class="hero-slideshow" aria-label="Desserts slideshow"></div>
+							</div>
+						</figure>
+					</div>
+				</div>
+			</section>
+
+			<section id="page-recherche" class="panel app-card page-section active">
+				<div class="panel-header">
+					<div>
+						<h2>Recherche générale</h2>
+						<p>Recherche par matricule, affichage des résultats, puis formulaire de rajout juste en dessous.</p>
+					</div>
+				</div>
+				<form id="searchForm" class="search-grid">
+					<div class="field">
+						<span>Matricule</span>
+						<input id="matriculeInput" type="text" placeholder="Entrez le matricule" />
+					</div>
+					<div class="actions">
+						<button type="submit" class="primary-button">Rechercher</button>
+						<button id="resetButton" type="button" class="secondary-button">Réinitialiser</button>
+					</div>
+				</form>
+				<div id="resultsHint" style="margin-top:4px;color:var(--muted)"></div>
+				<div id="searchResults" class="results-list empty-state" style="margin-top:12px">Lancez une recherche pour afficher les résultats du matricule.</div>
+				<!-- <div class="collaborator-panel">
+					<div class="panel-header">
+						<div>
+							<h3>🆕 Nouveau collaborateur</h3>
+							<p>Ajouter une personne qui n'existe PAS dans la base de données.</p>
+						</div>
+					</div>
+					<form id="collaboratorForm" class="search-grid collaborator-form">
+						<div class="field">
+							<span>Matricule</span>
+							<input id="collaboratorMatriculeInput" type="text" placeholder="Matricule du collaborateur" />
+						</div>
+						<div class="field">
+							<span>Nom et prénom</span>
+							<input id="collaboratorNameInput" type="text" placeholder="Nom complet" />
+						</div>
+						<div class="field rajout-days-block" style="grid-column:1/-1;">
+							<span>Jours de repas</span>
+							<input id="collaboratorDays" type="hidden" />
+							<div id="collaboratorDayButtons" class="rajout-day-group collaborator-day-group"></div>
+						</div>
+						<div class="actions">
+							<button type="submit" class="primary-button">➕ Ajouter</button>
+						</div>
+					</form>
+					<div id="collaboratorStatus" class="form-status" style="margin-top:8px;color:var(--muted)"></div>
+				</div>
+				<div id="searchRajoutZone" class="search-rajout-zone">
+					<div class="rajout-simple-panel">
+						<div class="panel-header">
+							<div>
+								<h3>📋 Rajout simple</h3>
+								<p>Pour une personne déjà dans la base (matricule existe) mais sans planning/choix valide.</p>
+							</div>
+						</div>
+						<form id="rajoutForm" class="compact-rajout rajout-form-layout">
+							<div class="field rajout-matricule-block">
+								<span>Matricule sélectionné</span>
+								<div id="rajoutMatriculeDisplay" class="fixed-value">Aucun matricule sélectionné</div>
+							</div>
+							<div class="rajout-meta-row">
+								<div class="field rajout-date-block">
+									<span>Date</span>
+									<input id="rajoutDate" type="date" />
+								</div>
+								<div class="actions rajout-action-block">
+									<button type="submit" class="primary-button">✓ Valider rajout</button>
+								</div>
+							</div>
+							<div class="field rajout-days-block">
+								<span>Jours</span>
+								<input id="rajoutJour" type="hidden" />
+								<div id="rajoutDayButtons" class="rajout-day-group"></div>
+							</div>
+						</form>
+					</div>
+					<form id="attributionForm" class="compact-rajout rajout-form-layout attribution-form-layout">
+						<div class="field rajout-matricule-block">
+							<span>Repas de</span>
+							<div id="attributionMatriculeDisplay" class="fixed-value">Aucun matricule selectionne</div>
+						</div>
+						<div class="field">
+							<span>Attribue a</span>
+							<input id="attributionTargetInput" type="text" list="collaboratorOptions" placeholder="Matricule collaborateur" />
+							<datalist id="collaboratorOptions"></datalist>
+						</div>
+						<div class="field rajout-days-block">
+							<span>Jours attribution</span>
+							<input id="attributionJour" type="hidden" />
+							<div id="attributionDayButtons" class="rajout-day-group"></div>
+						</div>
+						<div class="actions rajout-action-block">
+							<button type="submit" class="primary-button">🔄 Valider attribution</button>
+						</div>
+						<div id="attributionStatus" class="form-status" style="grid-column:1/-1;color:var(--muted)"></div>
+					</form>
+				</div> -->
+			</section>
+
+			<section id="page-formulaire" class="panel app-card page-section">
+				<div class="panel-header">
+					<div>
+						<h2>Fiche collaborateur</h2>
+					</div>
+				</div>
+				<form id="formulaireSearchForm" class="search-grid">
+					<div class="field">
+						<span>Matricule</span>
+						<input id="formulaireMatriculeInput" type="text" placeholder="Entrez le matricule" />
+					</div>
+					<div class="actions">
+						<button type="submit" class="primary-button">Rechercher</button>
+						<button id="formulaireResetButton" type="button" class="secondary-button">Réinitialiser</button>
+					</div>
+				</form>
+				<div id="formulaireResults" class="results-list empty-state">Lancez une recherche dans Formulaire pour voir le jour d'aujourd'hui du matricule recherché.</div>
+			</section>
+
+			<section id="page-rajout" class="panel app-card rajout-panel page-section">
+			<div class="hero-note rajout-note" role="note" aria-live="polite">
+				<strong>Remarques importantes :</strong>
+				<ul>
+					<li>Toutes les collaboratrices et tous les collaborateurs sont invités à effectuer leurs choix de repas dès que possible pour l’ensemble de la semaine concernée. Le planning doit uniquement être utilisé pour filtrer les repas effectivement pris chaque jour, et non pour attendre avant de faire ses choix.</li>
+					<li>Les demandes de rajout répétées dues à l'absence de choix préalables perturbent l'organisation et la gestion des repas. Ainsi, toute personne effectuant des rajouts à deux reprises ou plus au cours d’un même mois pour ce motif pourra faire l’objet de mesures disciplinaires.</li>
+					<li>Toute collaboratrice ou tout collaborateur ayant effectué un choix de repas mais ne le consommant pas sera également susceptible d’être sanctionné si le repas n’a pas pu être réattribué à une autre personne. Cette mesure vise à limiter le gaspillage et à garantir une gestion optimale des ressources.</li>
+					<li>En cas d’oubli de choix alors que le collaborateur est présent et en activité, toute demande exceptionnelle de rajout devra obligatoirement être adressée à la DRH avec copie à BIRH et Data RH pour validation.</li>
+					<li>Nous vous remercions de veiller à la mise à jour régulière de vos choix de repas. Le respect de cette procédure contribue au bon fonctionnement du service, à une meilleure organisation logistique et à la réduction du gaspillage alimentaire.</li>
+				</ul>
+				<p>Nous comptons sur la responsabilité et la collaboration de chacun pour le respect de ces dispositions.</p>
+			</div>
+				<div id="rajoutList" class="results-list rajout-list-only" style="margin-top:12px"></div>
+			</section>
+
+			<section id="page-export" class="panel app-card page-section">
+				<div class="panel-header">
+					<div>
+						<h2>Exporter les données</h2>
+						<p>Choisissez un jour de la semaine pour exporter les données correspondantes.</p>
+					</div>
+				</div>
+				<form id="exportForm" class="search-grid">
+					<div class="field">
+						<span>Jour</span>
+						<select id="exportDay">
+							<option value="all">Tous les jours</option>
+							<option value="lundi">Lundi</option>
+							<option value="mardi">Mardi</option>
+							<option value="mercredi">Mercredi</option>
+							<option value="jeudi">Jeudi</option>
+							<option value="vendredi">Vendredi</option>
+							<option value="samedi">Samedi</option>
+							<option value="dimanche">Dimanche</option>
+						</select>
+					</div>
+					<div class="actions">
+						<button id="exportButton" type="button" class="primary-button">📥 Télécharger XLSX</button>
+					</div>
+				</form>
+				<div id="exportStatus" style="margin-top:8px;color:var(--muted)"></div>
+			</section>
+
+			<!-- SECTION STATISTIQUES -->
+			<section id="page-stats" class="panel app-card page-section">
+				<div class="panel-header">
+					<div>
+						<h2>📊 Tableau de bord - Statistiques des repas</h2>
+						<p>Analyse des repas pris par jour et par plage horaire.</p>
+					</div>
+				</div>
+				
+				<div class="stats-filters">
+					<div class="field">
+						<span>📅 Jour de la semaine</span>
+						<select id="statsDayFilter">
+							<option value="lundi">Lundi</option>
+							<option value="mardi">Mardi</option>
+							<option value="mercredi">Mercredi</option>
+							<option value="jeudi">Jeudi</option>
+							<option value="vendredi">Vendredi</option>
+							<option value="samedi">Samedi</option>
+							<option value="dimanche">Dimanche</option>
+						</select>
+					</div>
+					<div class="field">
+						<span>⏰ Plage horaire</span>
+						<select id="statsTimeRangeFilter">
+							<option value="all">Toutes</option>
+							<option value="10-11">10:00 - 11:00</option>
+							<option value="11-12">11:00 - 12:00</option>
+							<option value="12-13">12:00 - 13:00</option>
+							<option value="13-14">13:00 - 14:00</option>
+							<option value="14-15">14:00 - 15:00</option>
+							<option value="15+">15:00 et plus</option>
+						</select>
+					</div>
+					<button id="refreshStatsButton" class="primary-button">🔄 Actualiser</button>
+				</div>
+
+				<div class="stats-cards">
+					<div class="stat-card-big">
+						<span class="stat-icon">🍽️</span>
+						<div>
+							<span class="stat-label-big">Repas total</span>
+							<strong id="statsTotalMeals">0</strong>
+						</div>
+					</div>
+					<div class="stat-card-big success">
+						<span class="stat-icon">✅</span>
+						<div>
+							<span class="stat-label-big">Repas pris</span>
+							<strong id="statsTakenMeals">0</strong>
+						</div>
+					</div>
+					<div class="stat-card-big warning">
+						<span class="stat-icon">⏳</span>
+						<div>
+							<span class="stat-label-big">Repas non pris</span>
+							<strong id="statsNotTakenMeals">0</strong>
+						</div>
+					</div>
+				</div>
+
+				<div class="stats-charts-grid">
+					<div class="stats-chart-container">
+						<h3>📊 Histogramme des repas pris par plage horaire</h3>
+						<div class="stats-chart-wrapper">
+							<canvas id="mealsHistogram" width="800" height="400" style="max-width:100%; height:100%;"></canvas>
+							<div id="histogramLegend" class="histogram-legend"></div>
+						</div>
+					</div>
+					<div class="stats-pie-card">
+						<h3>🍰 Répartition repas pris / repas non pris</h3>
+						<div class="stats-pie-card-inner">
+							<div class="stats-pie-chart-wrapper">
+								<canvas id="mealsPieChart" width="400" height="400" style="max-width:100%; height:100%;"></canvas>
+							</div>
+							<div id="statsPieLegend" class="stats-pie-legend"></div>
+						</div>
+					</div>
+				</div>
+
+				<div class="stats-action-summary">
+					<h3>📌 Résumé des actions du jour</h3>
+					<div class="stats-action-grid">
+					<div class="stat-card-small success">
+						<span class="stat-action-label">Rajouts</span>
+						<strong id="statsRajoutCount">0</strong>
+						<p class="stat-action-meta">Nombre de rajouts pour <span id="statsDayLabel">le jour sélectionné</span>.</p>
+					</div>
+					<div class="stat-card-small">
+						<span class="stat-action-label">Attributions</span>
+						<strong id="statsAttributionCount">0</strong>
+						<p class="stat-action-meta">Nombre d'attributions pour <span id="statsDayLabel2">le jour sélectionné</span>.</p>
+						</div>
+					</div>
+				</div>
+			</section>
+		</main>
+	</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+</body>
 </html>
