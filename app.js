@@ -143,6 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	elements.statsNotTakenMeals = document.getElementById('statsNotTakenMeals');
 	elements.statsAttributionCount = document.getElementById('statsAttributionCount');
 	elements.statsRajoutCount = document.getElementById('statsRajoutCount');
+	
+	elements.histogramLegend = document.getElementById('histogramLegend');
+	elements.statsPieLegend = document.getElementById('statsPieLegend');
 
 	state.sidebarCollapsed = readSidebarCollapsedState();
 	if (isMobileViewport()) state.sidebarCollapsed = false;
@@ -179,7 +182,6 @@ function scrollToSection(sectionId) {
 	if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Petit utilitaire debounce pour éviter trop de rendus pendant la frappe
 function debounce(fn, wait) {
 	let t = null;
 	return function(...args) {
@@ -305,7 +307,6 @@ function bindEvents() {
 		});
 	}
 
-	// Recherche en direct dans la fiche "Formulaire" (sans cliquer sur Rechercher)
 	if (elements.formulaireMatriculeInput) {
 		elements.formulaireMatriculeInput.addEventListener('input', debounce(() => {
 			const v = String(elements.formulaireMatriculeInput.value || '').trim();
@@ -355,7 +356,6 @@ function isMobileViewport() { return window.matchMedia && window.matchMedia('(ma
 // ==================== NAVIGATION ====================
 function showSection(pageId) {
 	const pages = ['page-formulaire', 'page-recherche', 'page-rajout', 'page-export', 'page-stats'];
-	// remove any existing page-*-active body classes and add the current one
 	try {
 		document.body.classList.forEach(cls => {
 			if (/^page-.*-active$/.test(cls)) document.body.classList.remove(cls);
@@ -595,7 +595,6 @@ function onFormulaireMealClick(event) {
 	button.disabled = true;
 	button.textContent = '✓ Validé';
 	
-	// Mise à jour optimiste
 	setDayCheckedOptimistic(matricule, dayKey, true);
 	renderCurrentFormulaireSearch();
 	
@@ -657,7 +656,6 @@ function onCollaboratorSubmit(event) {
 		return;
 	}
 	
-	// Création optimiste du nouveau collaborateur
 	const newRow = {
 		matricule: matricule,
 		nomPrenom: nomPrenom,
@@ -672,7 +670,6 @@ function onCollaboratorSubmit(event) {
 	});
 	state.rows.unshift(newRow);
 	
-	// Mise à jour des compteurs
 	if (elements.newCollaboratorCount) {
 		state.newCollaboratorCount++;
 		elements.newCollaboratorCount.textContent = String(state.newCollaboratorCount);
@@ -712,7 +709,6 @@ function onRajoutSubmit(event) {
 		return;
 	}
 	
-	// Mise à jour optimiste
 	if (!targetRow.rajouts) targetRow.rajouts = {};
 	jours.forEach(jour => {
 		targetRow.rajouts[jour] = true;
@@ -753,7 +749,6 @@ function onAttributionSubmit(event) {
 	if (!targetExists) { elements.attributionStatus.textContent = `❌ "${attribution}" n'existe pas.`; setTimeout(() => { if (elements.attributionStatus) elements.attributionStatus.textContent = ''; }, 2000); return; }
 	if (normalizeText(matricule) === normalizeText(attribution)) { elements.attributionStatus.textContent = '❌ Auto-attribution interdite.'; setTimeout(() => { if (elements.attributionStatus) elements.attributionStatus.textContent = ''; }, 2000); return; }
 	
-	// Mise à jour optimiste
 	const targetRow = state.rows.find(row => normalizeText(row.matricule) === matricule);
 	if (targetRow && targetRow.days) {
 		jours.forEach(jour => {
@@ -1119,7 +1114,6 @@ function extractHour(timeStr) {
 
 function getTimeRange(hour) {
 	if (hour === null) return 'all';
-	// Map hours into the new 1-hour buckets requested by the user
 	if (hour >= 10 && hour < 11) return '10-11';
 	if (hour >= 11 && hour < 12) return '11-12';
 	if (hour >= 12 && hour < 13) return '12-13';
@@ -1178,10 +1172,18 @@ function calculateStats(selectedDay, selectedRange) {
 }
 
 function renderHistogram(rangeCounts, totalTaken, selectedRange) {
-	const ctx = document.getElementById('mealsHistogram');
-	if (!ctx) return;
+	const canvas = document.getElementById('mealsHistogram');
+	if (!canvas) return;
 	
-	const canvas = ctx.getContext('2d');
+	// Reset canvas parent - don't destroy the canvas element
+	const canvasParent = canvas.parentElement;
+	if (!canvasParent) return;
+	
+	// Make sure canvas is visible and has proper dimensions
+	if (canvas.width === 0) canvas.width = canvasParent.clientWidth || 600;
+	if (canvas.height === 0) canvas.height = 300;
+	
+	const ctx = canvas.getContext('2d');
 	let rangesToShow = [];
 	
 	if (selectedRange === 'all') {
@@ -1203,14 +1205,32 @@ function renderHistogram(rangeCounts, totalTaken, selectedRange) {
 	
 	if (statsChart) {
 		statsChart.destroy();
+		statsChart = null;
 	}
 	
 	if (data.every(v => v === 0)) {
-		canvas.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">📊 Aucune donnée disponible pour cette période</div>';
+		// Show a message without destroying the canvas
+		canvas.style.display = 'none';
+		let messageDiv = canvasParent.querySelector('.histogram-empty-message');
+		if (!messageDiv) {
+			messageDiv = document.createElement('div');
+			messageDiv.className = 'histogram-empty-message';
+			messageDiv.style.textAlign = 'center';
+			messageDiv.style.padding = '40px';
+			messageDiv.style.color = 'var(--muted)';
+			canvasParent.appendChild(messageDiv);
+		}
+		messageDiv.textContent = '📊 Aucune donnée disponible pour cette période';
+		messageDiv.style.display = 'block';
 		return;
 	}
 	
-	statsChart = new Chart(canvas, {
+	// Hide any empty message and show canvas
+	canvas.style.display = 'block';
+	const emptyMsg = canvasParent.querySelector('.histogram-empty-message');
+	if (emptyMsg) emptyMsg.style.display = 'none';
+	
+	statsChart = new Chart(ctx, {
 		type: 'bar',
 		data: {
 			labels: labels,
@@ -1233,40 +1253,63 @@ function renderHistogram(rangeCounts, totalTaken, selectedRange) {
 				tooltip: { callbacks: { label: function(context) { return `🍽️ ${context.raw} repas`; } } }
 			},
 			scales: {
-				y: { beginAtZero: true, title: { display: true, text: 'Nombre de repas', font: { weight: 'bold', size: 12 } }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1 } },
+				y: { beginAtZero: true, title: { display: true, text: 'Nombre de repas', font: { weight: 'bold', size: 12 } }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1, precision: 0 } },
 				x: { title: { display: true, text: 'Plages horaires', font: { weight: 'bold', size: 12 } }, grid: { display: false } }
 			},
 			animation: { duration: 500, easing: 'easeOutQuart' }
 		}
 	});
 
-	// Build a small custom legend matching each bar color and label
-	try {
-		const legendContainer = document.getElementById('histogramLegend');
-		if (legendContainer) {
-			legendContainer.innerHTML = labels.map((lbl, i) => {
-				const count = data[i] || 0;
-				const color = backgroundColors[i] || '#ccc';
-				return `<div class="histogram-legend-item"><span class="histogram-legend-color" style="background:${color}"></span><span class="histogram-legend-text">${lbl}</span><span class="histogram-legend-value">${count} repas</span></div>`;
-			}).join('');
-		}
-	} catch (e) {}
+	if (elements.histogramLegend) {
+		elements.histogramLegend.innerHTML = labels.map((lbl, i) => {
+			const count = data[i] || 0;
+			const color = backgroundColors[i] || '#ccc';
+			return `<div class="histogram-legend-item"><span class="histogram-legend-color" style="background:${color}"></span><span class="histogram-legend-text">${escapeHtml(lbl)}</span><span class="histogram-legend-value">${count} repas</span></div>`;
+		}).join('');
+	}
 }
 
 function renderPieChart(taken, notTaken) {
-	const ctx = document.getElementById('mealsPieChart');
-	if (!ctx) return;
-
-	const canvasCtx = ctx.getContext('2d');
+	const canvas = document.getElementById('mealsPieChart');
+	if (!canvas) return;
+	
+	const canvasParent = canvas.parentElement;
+	if (!canvasParent) return;
+	
+	if (canvas.width === 0) canvas.width = canvasParent.clientWidth || 300;
+	if (canvas.height === 0) canvas.height = 300;
+	
+	const ctx = canvas.getContext('2d');
 	const labels = ['Repas pris', 'Repas non pris'];
 	const values = [taken, notTaken];
 	const colors = ['#10b981', '#f59e0b'];
 
 	if (pieChart) {
 		pieChart.destroy();
+		pieChart = null;
 	}
+	
+	if (taken === 0 && notTaken === 0) {
+		canvas.style.display = 'none';
+		let messageDiv = canvasParent.querySelector('.pie-empty-message');
+		if (!messageDiv) {
+			messageDiv = document.createElement('div');
+			messageDiv.className = 'pie-empty-message';
+			messageDiv.style.textAlign = 'center';
+			messageDiv.style.padding = '40px';
+			messageDiv.style.color = 'var(--muted)';
+			canvasParent.appendChild(messageDiv);
+		}
+		messageDiv.textContent = '📊 Aucune donnée disponible';
+		messageDiv.style.display = 'block';
+		return;
+	}
+	
+	canvas.style.display = 'block';
+	const emptyMsg = canvasParent.querySelector('.pie-empty-message');
+	if (emptyMsg) emptyMsg.style.display = 'none';
 
-	pieChart = new Chart(canvasCtx, {
+	pieChart = new Chart(ctx, {
 		type: 'doughnut',
 		data: {
 			labels: labels,
@@ -1288,15 +1331,14 @@ function renderPieChart(taken, notTaken) {
 		}
 	});
 
-	const legendContainer = document.getElementById('statsPieLegend');
-	if (legendContainer) {
-		legendContainer.innerHTML = [
+	if (elements.statsPieLegend) {
+		elements.statsPieLegend.innerHTML = [
 			{ label: 'Repas pris', value: taken, color: colors[0] },
 			{ label: 'Repas non pris', value: notTaken, color: colors[1] }
 		].map(item => `
 			<div class="stats-pie-legend-item">
 				<span class="stats-pie-legend-color" style="background:${item.color}"></span>
-				<span class="stats-pie-legend-label">${item.label}</span>
+				<span class="stats-pie-legend-label">${escapeHtml(item.label)}</span>
 				<span class="stats-pie-legend-meta">${item.value} repas</span>
 			</div>
 		`).join('');
@@ -1326,7 +1368,6 @@ function updateStatistics() {
 	renderHistogram(filteredRangeCounts, stats.taken, selectedRange);
 	renderPieChart(stats.taken, stats.notTaken);
 
-	// Update human-readable day labels in the summary cards
 	try {
 		const dayLabel = getDayLabel(selectedDay || getTodayDayKey());
 		const lblEl = document.getElementById('statsDayLabel');
